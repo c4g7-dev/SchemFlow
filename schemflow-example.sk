@@ -1,0 +1,28 @@
+# Example Skript File for SchemFlow Plugin
+# Save this as schemflow-example.sk in your Skript/scripts directory
+
+# Example: Auto-backup system using SchemFlow
+every 30 minutes:
+    loop all players:
+        if loop-player has permission "schemflow.admin":
+            set {_schematics::*} to schemflow schematics
+            send "&a[SchemFlow] &7Found %size of {_schematics::*}% schematics in storage" to loop-player
+
+# Example: Fetch and paste schematic on command
+command /loadschematic <text>:
+    permission: schemflow.admin
+    trigger:
+        set {_name} to arg-1
+        fetch schemflow schematic {_name} to "plugins/Skript/schematics"
+        wait 2 seconds
+        paste schemflow schematic {_name} at location of player
+        send "&a[SchemFlow] &7Loaded and pasted schematic: &b%{_name}%" to player
+
+# Example: List available schematics
+command /listschematics:
+    permission: schemflow.admin
+    trigger:
+        set {_schematics::*} to schemflow schematics
+        send "&a[SchemFlow] &7Available schematics:" to player
+        loop {_schematics::*}:
+            send "&8- &b%loop-value%" to player
