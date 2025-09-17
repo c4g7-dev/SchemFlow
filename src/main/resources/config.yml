@@ -1,0 +1,43 @@
+endpoint: "play.min.io"
+secure: true
+accessKey: "MINIO_ACCESS_KEY"
+secretKey: "MINIO_SECRET_KEY"
+bucket: "schematics"
+extension: "schm"
+
+# Where to place downloaded .schm files on disk
+downloadDir: "plugins/Skript/schematics"
+
+# Startup behavior
+autoListOnStart: true
+# Optional: name of schematic to fetch on start (leave blank to skip)
+fetchOnStart: ""
+
+# Schematic cache auto-refresh interval (seconds). Set 0 to disable periodic refresh.
+cacheRefreshSeconds: 60
+
+# Provisioning (WDB replacement)
+provisionOnStartup: false
+worlds:
+  - name: "example_world"
+    enabled: false
+    flat: true
+    generatorSettings: '{"biome": "minecraft:plains","layers": []}'
+    schem: "example_world"    # .schm name (without extension)
+    pasteAt: "0,64,0"
+    gamerules:
+      doMobSpawning: false
+      doDaylightCycle: false
+      doWeatherCycle: false
+      announceAdvancements: false
+      disableRaids: true
+      doFireTick: false
+      doPatrolSpawning: false
+      doTraderSpawning: false
+      doVinesSpread: false
+      doWardenSpawning: false
+      globalSoundEvents: false
+      mobGriefing: false
+      randomTickSpeed: 0
+      snowAccumulationHeight: 0
+      spawnChunkRadius: 0

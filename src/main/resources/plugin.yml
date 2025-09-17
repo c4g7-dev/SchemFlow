@@ -1,0 +1,17 @@
+name: SchemFlow
+main: com.skydinse.schemflow.SchemFlowPlugin
+version: "0.5"
+api-version: '1.20'
+author: c4g7
+website: https://bio.c4g7.com
+softdepend:
+  - Skript
+  - WorldEdit
+commands:
+  'SchemFlow':
+    description: SchemFlow primary command
+    usage: "/SchemFlow <help|list|fetch|pos1|pos2|upload|paste|delete|cache|reload|provision>"
+    permission: schemflow.admin
+permissions:
+  schemflow.admin:
+    default: op
