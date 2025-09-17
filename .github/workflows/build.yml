@@ -28,13 +28,24 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
         
+    - name: Determine version
+      id: version
+      shell: bash
+      run: |
+        if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+          VER="${GITHUB_REF#refs/tags/v}"
+        else
+          VER="${{ github.sha }}"
+        fi
+        echo "ver=$VER" >> "$GITHUB_OUTPUT"
+
     - name: Build with Maven
-      run: mvn clean compile test-compile package --batch-mode
+      run: mvn -Drevision=${{ steps.version.outputs.ver }} clean compile test-compile package --batch-mode
       
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: SchemFlow-${{ github.sha }}
+        name: SchemFlow-${{ steps.version.outputs.ver }}
         path: target/SchemFlow-*.jar
         retention-days: 30
 
@@ -53,8 +64,13 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
         
+    - name: Extract tag version
+      id: tag
+      shell: bash
+      run: echo "ver=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+
     - name: Build release JAR
-      run: mvn clean package --batch-mode
+      run: mvn -Drevision=${{ steps.tag.outputs.ver }} clean package --batch-mode
       
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1

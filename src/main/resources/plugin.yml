@@ -1,6 +1,6 @@
 name: SchemFlow
 main: com.c4g7.schemflow.SchemFlowPlugin
-version: "0.5"
+version: "${project.version}"
 api-version: '1.21'
 author: c4g7
 website: https://bio.c4g7.com
