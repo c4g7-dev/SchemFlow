@@ -34,13 +34,16 @@ jobs:
       run: |
         if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
           VER="${GITHUB_REF#refs/tags/v}"
+          MVN_REV="-Drevision=$VER"
         else
-          VER="${{ github.sha }}"
+          VER="0.5"
+          MVN_REV=""
         fi
         echo "ver=$VER" >> "$GITHUB_OUTPUT"
+        echo "mvn_rev=$MVN_REV" >> "$GITHUB_OUTPUT"
 
     - name: Build with Maven
-      run: mvn -Drevision=${{ steps.version.outputs.ver }} clean compile test-compile package --batch-mode
+      run: mvn ${{ steps.version.outputs.mvn_rev }} clean compile test-compile package --batch-mode
       
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -53,6 +56,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
     
     steps:
     - name: Checkout code
@@ -73,7 +78,7 @@ jobs:
       run: mvn -Drevision=${{ steps.tag.outputs.ver }} clean package --batch-mode
       
     - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: target/SchemFlow-*.jar
         generate_release_notes: true
