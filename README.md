@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/github/license/c4g7-dev/SchemFlow?style=for-the-badge)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/c4g7-dev/SchemFlow?style=for-the-badge&color=brightgreen)](https://github.com/c4g7-dev/SchemFlow/releases)
 [![Downloads](https://img.shields.io/github/downloads/c4g7-dev/SchemFlow/total?style=for-the-badge&color=blue)](https://github.com/c4g7-dev/SchemFlow/releases)
-[![Java](https://img.shields.io/badge/Java-17+-orange?style=for-the-badge&logo=openjdk)](https://openjdk.org/)
+[![Java](https://img.shields.io/badge/Java-21-orange?style=for-the-badge&logo=openjdk)](https://openjdk.org/)
 [![Paper](https://img.shields.io/badge/Paper-1.21+-00ADD8?style=for-the-badge&logo=minecraft)](https://papermc.io/)
 
 **⚡ Lightning-fast schematic management powered by S3/MinIO storage**
@@ -106,7 +106,7 @@
 
 ### 📋 **Requirements**
 - **Minecraft**: 1.21.8+ (Paper/Purpur recommended)
-- **Java**: 17 or higher
+- **Java**: 21
 - **WorldEdit**: 7.3+ (FastAsyncWorldEdit supported)
 - **Storage**: S3-compatible endpoint (MinIO, AWS S3, etc.)
 - **Optional**: Skript 2.7+ for advanced automation

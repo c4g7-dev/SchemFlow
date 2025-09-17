@@ -13,8 +13,8 @@
     <description>WorldEdit + Skript schematic flow using MinIO/S3</description>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <paper.version>1.21.1-R0.1-SNAPSHOT</paper.version>
         <skript.version>2.7.3</skript.version>
@@ -111,7 +111,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
-                    <release>17</release>
+                    <release>21</release>
                     <includes>
                         <include>com/c4g7/**</include>
                     </includes>
