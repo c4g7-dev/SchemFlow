@@ -2,6 +2,8 @@
 
 <div align="center">
 
+<a href="https://cdn.modrinth.com/data/cached_images/e1fac996c4818414f4e52a5e27b5dba5c849ab92_0.webp"><img src="https://cdn.modrinth.com/data/cached_images/e1fac996c4818414f4e52a5e27b5dba5c849ab92_0.webp" alt="SchemFlow Logo" width="320"></a>
+
 [![License](https://img.shields.io/github/license/c4g7-dev/SchemFlow?style=for-the-badge)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/c4g7-dev/SchemFlow?style=for-the-badge&color=brightgreen)](https://github.com/c4g7-dev/SchemFlow/releases)
 [![Downloads](https://img.shields.io/github/downloads/c4g7-dev/SchemFlow/total?style=for-the-badge&color=blue)](https://github.com/c4g7-dev/SchemFlow/releases)
