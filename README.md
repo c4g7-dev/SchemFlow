@@ -323,7 +323,7 @@ We welcome contributions! Here's how to get started:
 ## 📜 License & Credits
 
 ### **License**
-SchemFlow is released under the **MIT License** - see [LICENSE](LICENSE) for details.
+SchemFlow is released under the **Apache-2.0 License** — see [LICENSE](LICENSE) for details.
 
 ### **Credits & Acknowledgments**
 - **Maintainers**: c4g7-dev and community contributors
