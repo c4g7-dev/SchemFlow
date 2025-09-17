@@ -131,6 +131,8 @@ bucket: "schematics"
 secure: true  # Use HTTPS
 ```
 
+Note: For MinIO, `accessKey` is the MinIO username and `secretKey` is that user's password. For other S3 providers, use their respective access key and secret key.
+
 **Test your setup**: `/SchemFlow list`
 
 ---

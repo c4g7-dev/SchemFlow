@@ -100,7 +100,6 @@
             <groupId>net.kyori</groupId>
             <artifactId>adventure-platform-bukkit</artifactId>
             <version>4.3.3</version>
-            <scope>provided</scope>
         </dependency>
     </dependencies>
 
@@ -134,6 +133,14 @@
                                 <relocation>
                                     <pattern>io.minio</pattern>
                                     <shadedPattern>com.c4g7.schemflow.shaded.minio</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>net.kyori.adventure.platform</pattern>
+                                    <shadedPattern>com.c4g7.schemflow.shaded.adventure.platform</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>net.kyori.adventure.text.minimessage</pattern>
+                                    <shadedPattern>com.c4g7.schemflow.shaded.adventure.text.minimessage</shadedPattern>
                                 </relocation>
                             </relocations>
                             <filters>
