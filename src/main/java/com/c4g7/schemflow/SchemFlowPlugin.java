@@ -73,6 +73,15 @@ public class SchemFlowPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         instance = this;
+        try {
+            boolean hasWE = getServer().getPluginManager().getPlugin("WorldEdit") != null;
+            boolean hasFAWE = getServer().getPluginManager().getPlugin("FastAsyncWorldEdit") != null || getServer().getPluginManager().getPlugin("FAWE") != null;
+            if (!hasWE && !hasFAWE) {
+                getLogger().severe("WorldEdit or FastAsyncWorldEdit is required. Please install one of them.");
+                getServer().getPluginManager().disablePlugin(this);
+                return;
+            }
+        } catch (Throwable ignored) {}
         saveDefaultConfig();
         sanitizeConfigTabs();
         sanitizeConfigQuotes();
