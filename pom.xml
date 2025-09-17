@@ -102,6 +102,13 @@
             <artifactId>adventure-platform-bukkit</artifactId>
             <version>4.3.3</version>
         </dependency>
+
+        <!-- bStats metrics -->
+        <dependency>
+            <groupId>org.bstats</groupId>
+            <artifactId>bstats-bukkit</artifactId>
+            <version>3.0.2</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -142,6 +149,10 @@
                                 <relocation>
                                     <pattern>net.kyori.adventure.text.minimessage</pattern>
                                     <shadedPattern>com.c4g7.schemflow.shaded.adventure.text.minimessage</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.bstats</pattern>
+                                    <shadedPattern>com.c4g7.schemflow.shaded.bstats</shadedPattern>
                                 </relocation>
                             </relocations>
                             <filters>

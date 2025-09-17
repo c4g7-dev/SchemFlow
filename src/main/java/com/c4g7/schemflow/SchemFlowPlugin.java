@@ -88,6 +88,10 @@ public class SchemFlowPlugin extends JavaPlugin {
         } catch (Throwable ignored) {}
         this.audiences = net.kyori.adventure.platform.bukkit.BukkitAudiences.create(this);
         this.miniMessage = net.kyori.adventure.text.minimessage.MiniMessage.miniMessage();
+        try {
+            // Initialize bStats metrics (plugin id 27301)
+            new org.bstats.bukkit.Metrics(this, 27301);
+        } catch (Throwable ignored) {}
         selection = new SelectionManager();
         FileConfiguration cfg = getConfig();
         try {
