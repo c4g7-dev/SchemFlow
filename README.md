@@ -145,6 +145,21 @@ Note: For MinIO, `accessKey` is the MinIO username and `secretKey` is that user'
 <summary><b>📜 Click to expand command list</b></summary>
 
 ### **Core Commands**
+## 🔐 Permissions
+
+- `schemflow.admin`: Full access to all commands (default: op)
+- `schemflow.help`: View help (default: true)
+- `schemflow.list`: List schematics (default: true)
+- `schemflow.fetch`: Download schematic (default: true)
+- `schemflow.pos1`: Set first position (default: true)
+- `schemflow.pos2`: Set second position (default: true)
+- `schemflow.upload`: Export and upload schematic (default: op)
+- `schemflow.paste`: Paste schematic at location (default: op)
+- `schemflow.delete`: Delete schematic from storage (default: op)
+- `schemflow.cache`: Refresh schematic cache (default: op)
+- `schemflow.reload`: Reload configuration (default: op)
+- `schemflow.provision`: Provision world base (default: op)
+
 | Command | Description | Example |
 |---------|-------------|---------|
 | `/SchemFlow help` | Show command overview | `/SchemFlow help` |

@@ -12,7 +12,41 @@ commands:
   'SchemFlow':
     description: SchemFlow primary command
     usage: "/SchemFlow <help|list|fetch|pos1|pos2|upload|paste|delete|cache|reload|provision>"
-    permission: schemflow.admin
+    aliases: [schem]
 permissions:
   schemflow.admin:
     default: op
+    description: Full access to all SchemFlow commands
+  schemflow.help:
+    default: true
+    description: View help for SchemFlow commands
+  schemflow.reload:
+    default: op
+    description: Reload config and services
+  schemflow.cache:
+    default: op
+    description: Refresh schematic cache
+  schemflow.list:
+    default: true
+    description: List available schematics
+  schemflow.fetch:
+    default: true
+    description: Download schematic
+  schemflow.pos1:
+    default: true
+    description: Set first selection position
+  schemflow.pos2:
+    default: true
+    description: Set second selection position
+  schemflow.upload:
+    default: op
+    description: Export and upload schematic
+  schemflow.paste:
+    default: op
+    description: Paste schematic at location
+  schemflow.delete:
+    default: op
+    description: Delete schematic from storage
+  schemflow.provision:
+    default: op
+    description: Provision world base

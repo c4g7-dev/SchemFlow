@@ -18,21 +18,23 @@ public class SchemFlowCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!sender.hasPermission("schemflow.admin")) {
-            sendMM(sender, prefix() + " <red>No permission.</red>");
-            return true;
-        }
         if (args.length == 0) {
-            printHelp(sender, label);
+            if (sender.hasPermission("schemflow.help") || sender.hasPermission("schemflow.admin")) {
+                printHelp(sender, label);
+            } else {
+                sendMM(sender, prefix() + " <red>No permission.</red>");
+            }
             return true;
         }
         S3Service s3 = plugin.getS3Service();
         switch (args[0].toLowerCase()) {
             case "help" -> {
+                if (!check(sender, "schemflow.help")) return true;
                 printHelp(sender, label);
                 return true;
             }
             case "reload" -> {
+                if (!check(sender, "schemflow.reload")) return true;
                 boolean ok = plugin.reloadSchemFlowConfig();
                 if (!ok) {
                     sendMM(sender, prefix() + " <red>Reload failed.</red>");
@@ -52,6 +54,7 @@ public class SchemFlowCommand implements CommandExecutor {
                 return true;
             }
             case "cache" -> {
+                if (!check(sender, "schemflow.cache")) return true;
                 sendMM(sender, prefix() + " <grey>Refreshing schematic cache...</grey>");
                 plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                     try {
@@ -66,6 +69,7 @@ public class SchemFlowCommand implements CommandExecutor {
                 return true;
             }
             case "list" -> plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                if (!sender.hasPermission("schemflow.list") && !sender.hasPermission("schemflow.admin")) { sendMM(sender, prefix() + " <red>No permission.</red>"); return; }
                 try {
                     List<String> names = s3.listSchm();
                     if (names == null || names.isEmpty()) {
@@ -80,6 +84,7 @@ public class SchemFlowCommand implements CommandExecutor {
                 }
             });
             case "fetch" -> {
+                if (!check(sender, "schemflow.fetch")) return true;
                 if (args.length < 2) {
                     sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow fetch</gradient> <white><i>name</i></white> <white><i>[destDir]</i></white>");
                     return true;
@@ -96,16 +101,19 @@ public class SchemFlowCommand implements CommandExecutor {
                 });
             }
             case "pos1" -> {
+                if (!check(sender, "schemflow.pos1")) return true;
                 if (!(sender instanceof Player p)) { sendMM(sender, prefix() + " <red>Player only.</red>"); return true; }
                 plugin.getSelection().setPos1(p.getUniqueId(), p.getLocation());
                 sendMM(sender, prefix() + " <green>Set </green><aqua>pos1</aqua><green> at your location.</green>");
             }
             case "pos2" -> {
+                if (!check(sender, "schemflow.pos2")) return true;
                 if (!(sender instanceof Player p)) { sendMM(sender, prefix() + " <red>Player only.</red>"); return true; }
                 plugin.getSelection().setPos2(p.getUniqueId(), p.getLocation());
                 sendMM(sender, prefix() + " <green>Set </green><aqua>pos2</aqua><green> at your location.</green>");
             }
             case "upload" -> {
+                if (!check(sender, "schemflow.upload")) return true;
                 if (!(sender instanceof Player p)) { sendMM(sender, prefix() + " <red>Player only.</red>"); return true; }
                 if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow upload</gradient> <white><i>id</i></white> <white><i>[-flags]</i></white>"); return true; }
                 if (!plugin.getSelection().hasBoth(p.getUniqueId())) { sendMM(sender, prefix() + " <red>Set pos1 and pos2 first.</red>"); return true; }
@@ -137,6 +145,7 @@ public class SchemFlowCommand implements CommandExecutor {
                 }
             }
             case "paste" -> {
+                if (!check(sender, "schemflow.paste")) return true;
                 if (!(sender instanceof Player p)) { sendMM(sender, prefix() + " <red>Player only.</red>"); return true; }
                 if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow paste</gradient> <white><i>name</i></white> <white><i>[-flags]</i></white>"); return true; }
                 String name = args[1];
@@ -176,6 +185,7 @@ public class SchemFlowCommand implements CommandExecutor {
                 });
             }
             case "delete" -> {
+                if (!check(sender, "schemflow.delete")) return true;
                 if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow delete</gradient> <white><i>name</i></white>"); return true; }
                 String name = args[1];
                 plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -189,6 +199,7 @@ public class SchemFlowCommand implements CommandExecutor {
                 });
             }
             case "provision" -> {
+                if (!check(sender, "schemflow.provision")) return true;
                 if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow provision</gradient> <white><i>world</i></white>"); return true; }
                 String world = args[1];
                 plugin.getServer().getScheduler().runTask(plugin, () -> plugin.getProvisioner().provisionByName(world));
@@ -247,5 +258,11 @@ public class SchemFlowCommand implements CommandExecutor {
         var adv = plugin.getAudiences();
         if (adv != null) adv.sender(sender).sendMessage(mm.deserialize(mini));
         else sender.sendMessage(mm.deserialize(mini));
+    }
+
+    private boolean check(CommandSender sender, String node) {
+        if (sender.hasPermission("schemflow.admin") || sender.hasPermission(node)) return true;
+        sendMM(sender, prefix() + " <red>No permission.</red>");
+        return false;
     }
 }
