@@ -16,14 +16,14 @@ import com.c4g7.schemflow.SchemFlowPlugin;
 import org.bukkit.event.Event;
 
 import java.nio.file.Path;
-import java.util.List;
+@SuppressWarnings({"unchecked"})
 
 public class SkriptHook {
     public static void register() {
         if (!Skript.isAcceptRegistrations()) return;
-        Skript.registerExpression(ExprSchemList.class, String.class, ExpressionType.SIMPLE, "schemflow schematics");
-        Skript.registerEffect(EffFetchSchematic.class, "fetch schemflow schematic %string% [to %-string%]");
-        Skript.registerEffect(EffPasteSchematic.class, "paste schemflow schematic %string% at %location%");
+    Skript.registerExpression(ExprSchemList.class, String.class, ExpressionType.SIMPLE, "schemflow schematics");
+    Skript.registerEffect(EffFetchSchematic.class, "fetch schemflow schematic %string% [to %-string%]");
+    Skript.registerEffect(EffPasteSchematic.class, "paste schemflow schematic %string% at %location%");
     }
 
     @Name("Paste SchemFlow Schematic")
@@ -48,9 +48,11 @@ public class SkriptHook {
             String dest = SchemFlowPlugin.getInstance().getConfig().getString("downloadDir", "plugins/FlowStack/schematics");
             SchemFlowPlugin.getInstance().getServer().getScheduler().runTaskAsynchronously(SchemFlowPlugin.getInstance(), () -> {
                 try {
-                    java.nio.file.Path schm = s3.fetchSchm(n, dest);
+                    String group = null; String name = n;
+                    int c = n.indexOf(':'); if (c > 0) { group = n.substring(0, c); name = n.substring(c + 1); }
+                    java.nio.file.Path schm = (group == null) ? s3.fetchSchm(name, dest) : s3.fetchSchm(name, group, dest);
                     if (com.c4g7.schemflow.util.ZipUtils.isZip(schm)) {
-                        java.nio.file.Path outDir = schm.getParent().resolve(n);
+                        java.nio.file.Path outDir = schm.getParent().resolve(name);
                         com.c4g7.schemflow.util.SafeIO.ensureDir(outDir);
                         com.c4g7.schemflow.util.ZipUtils.unzip(schm, outDir);
                         try (java.util.stream.Stream<java.nio.file.Path> st = java.nio.file.Files.walk(outDir)) {
@@ -79,8 +81,17 @@ public class SkriptHook {
         @Override public boolean init(Expression<?>[] exprs, int matchedPattern, Kleenean isDelayed, SkriptParser.ParseResult parseResult) { return true; }
         @Override protected String[] get(Event e) {
             try {
-                List<String> list = SchemFlowPlugin.getInstance().getS3Service().listSchm();
-                return list.toArray(String[]::new);
+                S3Service s3 = SchemFlowPlugin.getInstance().getS3Service();
+                java.util.List<String> groups = s3.listGroups();
+                java.util.List<String> out = new java.util.ArrayList<>();
+                out.addAll(s3.listSchm());
+                for (String g : groups) {
+                    for (String n : s3.listSchm(g)) {
+                        String base = n.endsWith(".schm") ? n.substring(0, n.length() - 5) : n;
+                        out.add(g + ":" + base);
+                    }
+                }
+                return out.toArray(String[]::new);
             } catch (Exception ex) {
                 SchemFlowPlugin.getInstance().getLogger().warning("ExprSchemList failed: " + ex.getMessage());
                 return new String[0];
@@ -110,7 +121,9 @@ public class SkriptHook {
             S3Service s3 = SchemFlowPlugin.getInstance().getS3Service();
             SchemFlowPlugin.getInstance().getServer().getScheduler().runTaskAsynchronously(SchemFlowPlugin.getInstance(), () -> {
                 try {
-                    Path p = s3.fetchSchm(n, d);
+                    String group = null; String name = n;
+                    int c = n.indexOf(':'); if (c > 0) { group = n.substring(0, c); name = n.substring(c + 1); }
+                    Path p = (group == null) ? s3.fetchSchm(name, d) : s3.fetchSchm(name, group, d);
                     SchemFlowPlugin.getInstance().getLogger().info("Downloaded schematic: " + p);
                 } catch (Exception ex) {
                     SchemFlowPlugin.getInstance().getLogger().severe("Fetch failed: " + ex.getMessage());

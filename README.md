@@ -197,25 +197,20 @@ Test: `/SchemFlow list`
 
 ## 📁 Groups
 
-SchemFlow organizes schematics in S3 by groups using a fixed prefix layout:
+SchemFlow organizes schematics in S3 under a configurable root, then per-group folders.
 
 - Root prefix (config): `storage.rootDir` (default: `FlowStack/SchemFlow`)
-- Group folder prefix: `SF_` (not configurable)
-- File name prefix: `SF_` (not configurable)
+- Group folder naming: internal `SF_` prefix is used on the path only (transparent to users)
+- File naming: user-provided names are stored as-is (no schema name prefix)
 
-Path format:
+Path format (example):
 ```
-<rootDir>/SF_<group>/SF_<name>.schm
-```
-
-Example (default config):
-```
-FlowStack/SchemFlow/SF_lobby/SF_castle.schm
+<rootDir>/SF_<group>/<name>.schm
 ```
 
-Tips
+Examples
 - Upload to a group: `/SchemFlow upload castle -group lobby`
-- Fetch/paste from a group: `/SchemFlow fetch castle -group lobby`, `/SchemFlow paste castle -group lobby`
+- Fetch/paste from a group: `/SchemFlow fetch lobby:castle`, `/SchemFlow paste lobby:castle`
 - List all groups: `/SchemFlow groups`
 - Create a group: `/SchemFlow group create lobby`
 
