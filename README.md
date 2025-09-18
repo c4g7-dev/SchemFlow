@@ -115,7 +115,7 @@
 
 ### ⚡ **Installation**
 
-1. **Download** the latest `SchemFlow-0.5-all.jar` from [releases](https://github.com/c4g7-dev/SchemFlow/releases)
+1. **Download** the latest `SchemFlow-0.5.5-all.jar` from [releases](https://github.com/c4g7-dev/SchemFlow/releases)
 2. **Drop** into your `plugins/` directory
 3. **Install dependencies**: WorldEdit (required), Skript (optional)
 4. **Start server** to generate configuration files
@@ -278,7 +278,7 @@ cd SchemFlow
 mvn clean package
 ```
 
-**Output**: `target/SchemFlow-0.5-all.jar`
+**Output**: `target/SchemFlow-0.5.5-all.jar`
 
 ### **Development Setup**
 - **IDE**: Visual Studio Code (recommended) with Maven support

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.5 - 2025-09-18
 - Added: Granular permissions per subcommand (`schemflow.*` nodes). Defaults:
 	- help/list/fetch/pos1/pos2 are `true`
 	- upload/paste/delete/cache/reload/provision are `op`
