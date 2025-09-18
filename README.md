@@ -195,6 +195,32 @@ Test: `/SchemFlow list`
 
 ---
 
+## 📁 Groups
+
+SchemFlow organizes schematics in S3 by groups using a fixed prefix layout:
+
+- Root prefix (config): `storage.rootDir` (default: `FlowSuite/SchemFlow`)
+- Group folder prefix: `SF_` (not configurable)
+- File name prefix: `SF_` (not configurable)
+
+Path format:
+```
+<rootDir>/SF_<group>/SF_<name>.schm
+```
+
+Example (default config):
+```
+FlowSuite/SchemFlow/SF_lobby/SF_castle.schm
+```
+
+Tips
+- Upload to a group: `/SchemFlow upload castle -group lobby`
+- Fetch/paste from a group: `/SchemFlow fetch castle -group lobby`, `/SchemFlow paste castle -group lobby`
+- List all groups: `/SchemFlow groups`
+- Create a group: `/SchemFlow group create lobby`
+
+---
+
 ## 🤖 Skript Integration
 
 SchemFlow provides powerful Skript syntax for automation:
