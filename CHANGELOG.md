@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.10-5 - 2025-09-18
+- Fixed: plugin.yml YAML indentation under `commands` causing Invalid plugin.yml on load
+
 ## 0.5.10 - 2025-09-18
 - Changed: Trash is now a flat directory at `<rootDir>/.trash` (no per-group subfolders)
 - Added: `/SchemFlow trash clear --confirm` to permanently purge all trashed schematics
