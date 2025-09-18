@@ -109,30 +109,73 @@
 ### 📋 **Requirements**
 - **Minecraft**: 1.21.8+ (Paper/Purpur recommended)
 - **Java**: 21
+ - **WorldEdit**: 7.2.18+ (or FAWE)
 
-### ⚙️ **Quick Configuration**
+### ⚙️ Quick Configuration
 
 ```yaml
 # plugins/SchemFlow/config.yml
 endpoint: "your-minio-server.com:9000"
+secure: true
 accessKey: "your-access-key"
-| `/SchemFlow groups` | List all groups | `/SchemFlow groups` |
-| `/SchemFlow group create <name>` | Create a group | `/SchemFlow group create lobby` |
-secretKey: "your-secret-key" 
+secretKey: "your-secret-key"
 bucket: "schematics"
-secure: true  # Use HTTPS
-```
-| `/SchemFlow fetch <name> [-group <name>]` | Download schematic to disk | `/SchemFlow fetch castle -group lobby` |
-| `/SchemFlow upload <id> [-flags] [-group <name>]` | Upload selection as schematic | `/SchemFlow upload castle -eb -group lobby` |
-| `/SchemFlow paste <name> [-flags] [-group <name>]` | Paste schematic at location | `/SchemFlow paste castle -ea -group lobby` |
-**Test your setup**: `/SchemFlow list`
+extension: "schm"
 
-- **`-group <name>`**: Read/write schematics under a named group
-- **Combine**: `-eab` for all WorldEdit flags together
+# Local download target
+downloadDir: "plugins/Skript/schematics"
+
+# Storage hierarchy (S3 object keys)
+storage:
+  rootDir: "FlowSuite/SchemFlow"   # Root prefix in bucket
+  defaultGroup: "default"         # Used when -group not provided
+```
+
+Test: `/SchemFlow list`
+
+## 🎮 Command Reference
 <details>
 <summary><b>📜 Click to expand command list</b></summary>
 
-- `schemflow.groups`: List groups (default: op)
+### Core Commands
+| Command | Description | Example |
+|---------|-------------|---------|
+| `/SchemFlow help` | Show command overview | `/SchemFlow help` |
+| `/SchemFlow list` | List all stored schematics | `/SchemFlow list` |
+| `/SchemFlow cache` | Refresh schematic cache | `/SchemFlow cache` |
+| `/SchemFlow reload` | Reload configuration | `/SchemFlow reload` |
+| `/SchemFlow groups` | List all groups | `/SchemFlow groups` |
+| `/SchemFlow group create <name>` | Create a group | `/SchemFlow group create lobby` |
+
+### Schematic Operations
+| Command | Description | Example |
+|---------|-------------|---------|
+| `/SchemFlow fetch <name> [-group <name>]` | Download schematic to disk | `/SchemFlow fetch castle -group lobby` |
+| `/SchemFlow upload <id> [-flags] [-group <name>]` | Upload selection as schematic | `/SchemFlow upload castle -eb -group lobby` |
+| `/SchemFlow paste <name> [-flags] [-group <name>]` | Paste schematic at location | `/SchemFlow paste castle -ea -group lobby` |
+| `/SchemFlow delete <name>` | Remove schematic from storage | `/SchemFlow delete old_castle` |
+
+### Selection Tools
+| Command | Description |
+|---------|-------------|
+| `/SchemFlow pos1` | Set first selection corner |
+| `/SchemFlow pos2` | Set second selection corner |
+
+### World Management
+| Command | Description | Example |
+|---------|-------------|---------|
+| `/SchemFlow provision <world>` | Create/provision world from config | `/SchemFlow provision lobby` |
+
+### Flags
+- `-e`: include/paste entities
+- `-a`: ignore air blocks when pasting
+- `-b`: include/preserve biomes
+- `-group <name>`: target a named group
+
+</details>
+
+---
+
 ## 🔐 Permissions
 
 - `schemflow.admin` — full access (default: op)
@@ -149,58 +192,6 @@ secure: true  # Use HTTPS
 - `schemflow.provision` — provision world base (default: op)
 - `schemflow.groups` — list groups (default: op)
 - `schemflow.group.create` — create group (default: op)
-
-- `schemflow.group.create`: Create group (default: op)
-
-- `schemflow.admin`: Full access to all commands (default: op)
-- `schemflow.help`: View help (default: true)
-- `schemflow.list`: List schematics (default: true)
-- `schemflow.fetch`: Download schematic (default: true)
-- `schemflow.pos1`: Set first position (default: true)
-- `schemflow.pos2`: Set second position (default: true)
-- `schemflow.upload`: Export and upload schematic (default: op)
-- `schemflow.paste`: Paste schematic at location (default: op)
-- `schemflow.delete`: Delete schematic from storage (default: op)
-- `schemflow.cache`: Refresh schematic cache (default: op)
-- `schemflow.reload`: Reload configuration (default: op)
-- `schemflow.provision`: Provision world base (default: op)
-
-| Command | Description | Example |
-|---------|-------------|---------|
-| `/SchemFlow help` | Show command overview | `/SchemFlow help` |
-| `/SchemFlow list` | List all stored schematics | `/SchemFlow list` |
-| `/SchemFlow cache` | Refresh schematic cache | `/SchemFlow cache` |
-| `/SchemFlow reload` | Reload configuration | `/SchemFlow reload` |
-| `/SchemFlow groups` | List all groups | `/SchemFlow groups` |
-| `/SchemFlow group create <name>` | Create a group | `/SchemFlow group create lobby` |
-
-### **Schematic Operations**
-| Command | Description | Example |
-|---------|-------------|---------|
-| `/SchemFlow fetch <name> [-group <name>]` | Download schematic to disk | `/SchemFlow fetch castle -group lobby` |
-| `/SchemFlow upload <id> [-flags] [-group <name>]` | Upload selection as schematic | `/SchemFlow upload castle -eb -group lobby` |
-| `/SchemFlow paste <name> [-flags] [-group <name>]` | Paste schematic at location | `/SchemFlow paste castle -ea -group lobby` |
-| `/SchemFlow delete <name>` | Remove schematic from storage | `/SchemFlow delete old_castle` |
-
-### **Selection Tools**
-| Command | Description |
-|---------|-------------|
-| `/SchemFlow pos1` | Set first selection corner |
-| `/SchemFlow pos2` | Set second selection corner |
-
-### **World Management**
-| Command | Description | Example |
-|---------|-------------|---------|
-| `/SchemFlow provision <world>` | Create/provision world from config | `/SchemFlow provision lobby` |
-
-### **Flags**
-- **`-e`**: Include/paste entities
-- **`-a`**: Ignore air blocks when pasting  
-- **`-b`**: Include/preserve biomes
-- **`-group <name>`**: Read/write schematics under a named group
-- **Combine**: `-eab` for all WorldEdit flags together
-
-</details>
 
 ---
 
