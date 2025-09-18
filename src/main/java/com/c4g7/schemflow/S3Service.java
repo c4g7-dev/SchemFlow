@@ -146,7 +146,7 @@ public class S3Service implements AutoCloseable {
         ensureValidGroup(group);
         if (!name.toLowerCase().endsWith(extension)) name = name + extension;
         String src = resolveObjectKeyForRead(name, group);
-        String dst = buildTrashKey(name, group);
+        String dst = buildTrashKey(name);
         client.copyObject(CopyObjectArgs.builder().bucket(bucket).object(dst).source(CopySource.builder().bucket(bucket).object(src).build()).build());
         client.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(src).build());
     }
@@ -157,7 +157,7 @@ public class S3Service implements AutoCloseable {
         ensureValidName(name);
         ensureValidGroup(group);
         if (!name.toLowerCase().endsWith(extension)) name = name + extension;
-        String src = buildTrashKey(name, group);
+        String src = buildTrashKey(name);
         String dst = buildObjectKey(name, group);
         if (!objectExists(src)) throw new IllegalStateException("No trashed item named " + name + " in group " + group);
         client.copyObject(CopyObjectArgs.builder().bucket(bucket).object(dst).source(CopySource.builder().bucket(bucket).object(src).build()).build());
@@ -220,11 +220,10 @@ public class S3Service implements AutoCloseable {
         return rootDir + "/" + groupPrefix + grp + "/" + nameOnly;
     }
 
-    private String buildTrashKey(String fileName, String group) {
-        String grp = (group == null || group.isBlank()) ? defaultGroup : group;
+    private String buildTrashKey(String fileName) {
         String nameOnly = Path.of(fileName).getFileName().toString();
         if (!nameOnly.toLowerCase().endsWith(extension)) nameOnly = nameOnly + extension;
-        return rootDir + "/.trash/" + groupPrefix + grp + "/" + nameOnly;
+        return rootDir + "/.trash/" + nameOnly;
     }
 
     private boolean objectExists(String key) {
@@ -317,6 +316,32 @@ public class S3Service implements AutoCloseable {
         if (p.contains("..")) throw new IllegalArgumentException("'..' is prohibited in paths");
         if (p.contains(":")) throw new IllegalArgumentException("':' is prohibited in paths");
         return p;
+    }
+
+    public void clearTrash() throws Exception {
+        String prefix = rootDir + "/.trash/";
+        Iterable<Result<Item>> results = client.listObjects(ListObjectsArgs.builder().bucket(bucket).recursive(true).prefix(prefix).build());
+        java.util.List<String> keys = new java.util.ArrayList<>();
+        for (Result<Item> r : results) { keys.add(r.get().objectName()); }
+        for (String k : keys) {
+            client.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(k).build());
+        }
+    }
+
+    public java.util.List<String> listTrash() throws Exception {
+        String prefix = rootDir + "/.trash/";
+        Iterable<Result<Item>> results = client.listObjects(ListObjectsArgs.builder().bucket(bucket).recursive(false).prefix(prefix).build());
+        java.util.List<String> names = new java.util.ArrayList<>();
+        for (Result<Item> r : results) {
+            Item it = r.get();
+            String key = it.objectName();
+            if (!key.startsWith(prefix)) continue;
+            String file = key.substring(prefix.length());
+            if (!file.contains("/") && file.toLowerCase().endsWith(extension)) {
+                names.add(file);
+            }
+        }
+        return names;
     }
 
     @Override

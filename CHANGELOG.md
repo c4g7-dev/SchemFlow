@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.10 - 2025-09-18
+- Changed: Trash is now a flat directory at `<rootDir>/.trash` (no per-group subfolders)
+- Added: `/SchemFlow trash clear --confirm` to permanently purge all trashed schematics
+- Changed: `restore` restores from flat trash; `-group <dest>` optionally targets the destination group
+
 ## 0.5.9 - 2025-09-18
 - Added: `undo` / `redo` commands for last paste/delete (delete now moves to trash for safe restore)
 - Added: Path-based fetch: `/SchemFlow fetch /path/to/name(.schm)` under `storage.rootDir`

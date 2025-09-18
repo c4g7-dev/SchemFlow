@@ -40,10 +40,11 @@ public class SchemFlowTabCompleter implements TabCompleter {
             }
             return out;
         }
-        if (args.length == 2 && ("paste".equalsIgnoreCase(args[0]) || "delete".equalsIgnoreCase(args[0]))) {
+        if (args.length == 2 && ("paste".equalsIgnoreCase(args[0]) || "delete".equalsIgnoreCase(args[0]) || "restore".equalsIgnoreCase(args[0]))) {
             String root = args[0].toLowerCase();
             if ((root.equals("paste") && !(sender.hasPermission("schemflow.paste") || sender.hasPermission("schemflow.admin"))) ||
-                (root.equals("delete") && !(sender.hasPermission("schemflow.delete") || sender.hasPermission("schemflow.admin")))) {
+                (root.equals("delete") && !(sender.hasPermission("schemflow.delete") || sender.hasPermission("schemflow.admin"))) ||
+                (root.equals("restore") && !(sender.hasPermission("schemflow.restore") || sender.hasPermission("schemflow.admin")))) {
                 return Collections.emptyList();
             }
             String p = args[1].toLowerCase();

@@ -11,7 +11,7 @@ softdepend:
 commands:
   'SchemFlow':
     description: SchemFlow primary command
-  usage: "/SchemFlow <help|list|fetch [group:]name|pos1|pos2|upload id [-flags] [-group name]|paste [group:]name [-flags]|delete [group:]name|undo|redo|cache|reload|provision world|groups|group create name>"
+  usage: "/SchemFlow <help|list|fetch [group:]name|pos1|pos2|upload id [-flags] [-group name]|paste [group:]name [-flags]|delete [group:]name|restore name [-group dest]|trash [clear --confirm]|undo|redo|cache|reload|provision world|groups|group create name>"
     aliases: [schem]
 permissions:
   schemflow.admin:
@@ -47,6 +47,12 @@ permissions:
   schemflow.delete:
     default: op
     description: Delete schematic from storage
+  schemflow.restore:
+    default: op
+    description: Restore schematic from trash
+  schemflow.trash.clear:
+    default: op
+    description: Permanently clear all trashed schematics (requires --confirm)
   schemflow.provision:
     default: op
     description: Provision world base

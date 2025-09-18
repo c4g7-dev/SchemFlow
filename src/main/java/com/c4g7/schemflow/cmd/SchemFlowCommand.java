@@ -229,6 +229,45 @@ public class SchemFlowCommand implements CommandExecutor {
                     }
                 });
             }
+            case "restore" -> {
+                if (!check(sender, "schemflow.restore")) return true;
+                if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow restore</gradient> <white><i>name</i></white> <grey>[-group <i>destGroup</i>]</grey>"); return true; }
+                String rName = args[1]; String rGroup = getGroupFlag(args);
+                final String name = rName; final String group = rGroup;
+                plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                    try {
+                        if (group == null) s3.restoreSchm(name); else s3.restoreSchm(name, group);
+                        plugin.refreshSchematicCacheAsync();
+                        sendMM(sender, prefix() + " <green>Restored schematic </green><aqua>" + name + "</aqua>" + (group != null ? " <grey>to group</grey> <aqua>" + group + "</aqua>" : ""));
+                    } catch (Exception e) {
+                        sendMM(sender, prefix() + " <red>Restore failed:</red> <grey>" + e.getMessage() + "</grey>");
+                    }
+                });
+            }
+            case "trash" -> {
+                if (args.length == 1) {
+                    if (!check(sender, "schemflow.list")) return true;
+                    plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                        try {
+                            java.util.List<String> items = s3.listTrash();
+                            if (items.isEmpty()) sendMM(sender, prefix() + " <grey>Trash is empty.</grey>");
+                            else sendMM(sender, prefix() + " <grey>Trashed schematics:</grey> <aqua>" + String.join(", ", items) + "</aqua>");
+                        } catch (Exception ex) {
+                            sendMM(sender, prefix() + " <red>Failed to list trash:</red> <grey>" + ex.getMessage() + "</grey>");
+                        }
+                    });
+                } else if ("clear".equalsIgnoreCase(args[1])) {
+                    if (!check(sender, "schemflow.trash.clear")) return true;
+                    boolean confirmed = java.util.Arrays.stream(args).anyMatch(a -> a.equalsIgnoreCase("--confirm"));
+                    if (!confirmed) { sendMM(sender, prefix() + " <yellow>This will permanently delete all trashed schematics.</yellow> <grey>Re-run with</grey> <aqua>--confirm</aqua> <grey>to proceed.</grey>"); return true; }
+                    plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                        try { s3.clearTrash(); sendMM(sender, prefix() + " <green>Trash cleared.</green>"); }
+                        catch (Exception ex) { sendMM(sender, prefix() + " <red>Trash clear failed:</red> <grey>" + ex.getMessage() + "</grey>"); }
+                    });
+                } else {
+                    sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow trash clear</gradient> <grey>--confirm</grey>");
+                }
+            }
             case "undo" -> {
                 if (!(sender instanceof Player)) { sendMM(sender, prefix() + " <red>Player only.</red>"); return true; }
                 var act = plugin.getUndoManager().popUndo();
@@ -330,6 +369,9 @@ public class SchemFlowCommand implements CommandExecutor {
                 "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " provision</gradient> <white><i>world</i></white> <dark_grey>-</dark_grey> Create/load and paste base</grey>\n" +
                 "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " groups</gradient> <dark_grey>-</dark_grey> List all groups</grey>\n" +
                 "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " group create</gradient> <white><i>name</i></white> <dark_grey>-</dark_grey> Create group path</grey>\n" +
+                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " restore</gradient> <white><i>name</i></white> <grey>[-group <i>dest</i>]</grey> <dark_grey>-</dark_grey> Restore a trashed schematic</grey>\n" +
+                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " trash</gradient> <dark_grey>-</dark_grey> List trashed schematics</grey>\n" +
+                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " trash clear</gradient> <grey>--confirm</grey> <dark_grey>-</dark_grey> Permanently clear trash</grey>\n" +
                 "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " undo</gradient> <dark_grey>-</dark_grey> Undo last paste/delete</grey>\n" +
                 "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " redo</gradient> <dark_grey>-</dark_grey> Redo last undo</grey>";
         var adv = com.c4g7.schemflow.SchemFlowPlugin.getInstance().getAudiences();

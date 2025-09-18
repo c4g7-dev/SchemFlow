@@ -156,6 +156,9 @@ Test: `/SchemFlow list`
 | `/SchemFlow delete [group:]name` | Remove schematic from storage | `/SchemFlow delete lobby:old_castle` |
 | `/SchemFlow undo` | Undo last paste/delete | `/SchemFlow undo` |
 | `/SchemFlow redo` | Redo last undo | `/SchemFlow redo` |
+| `/SchemFlow restore <name> [-group <dest>]` | Restore a trashed schematic to group (default is config group) | `/SchemFlow restore old_castle -group lobby` |
+| `/SchemFlow trash` | List trashed schematics | `/SchemFlow trash` |
+| `/SchemFlow trash clear --confirm` | Permanently clear ALL trashed schematics | `/SchemFlow trash clear --confirm` |
 
 ### Selection Tools
 | Command | Description |
@@ -189,6 +192,8 @@ Test: `/SchemFlow list`
 - `schemflow.upload` — export and upload schematic (default: op)
 - `schemflow.paste` — paste schematic at location (default: op)
 - `schemflow.delete` — delete schematic from storage (default: op)
+- `schemflow.restore` — restore schematic from trash (default: op)
+- `schemflow.trash.clear` — permanently clear trash (default: op)
 - `schemflow.cache` — refresh schematic cache (default: op)
 - `schemflow.reload` — reload configuration and services (default: op)
 - `schemflow.provision` — provision world base (default: op)
@@ -215,6 +220,11 @@ Examples
 - Fetch/paste from a group: `/SchemFlow fetch lobby:castle`, `/SchemFlow paste lobby:castle`
 - List all groups: `/SchemFlow groups`
 - Create a group: `/SchemFlow group create lobby`
+
+Trash and restore:
+- Deleted schematics move to a flat trash: `<rootDir>/.trash/<name>.schm`
+- Restore with `/SchemFlow restore <name> [-group <dest>]` (defaults to config `defaultGroup`)
+- Permanently purge all trashed items with `/SchemFlow trash clear --confirm`
 
 ---
 
@@ -300,7 +310,7 @@ cd SchemFlow
 mvn clean package
 ```
 
-**Output**: `target/SchemFlow-0.5.8-all.jar`
+**Output**: `target/SchemFlow-0.5.10-all.jar`
 
 ### **Development Setup**
 - **IDE**: Visual Studio Code (recommended) with Maven support
