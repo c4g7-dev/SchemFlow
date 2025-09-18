@@ -6,7 +6,7 @@
 
 [![License](https://img.shields.io/github/license/c4g7-dev/SchemFlow?style=for-the-badge)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/c4g7-dev/SchemFlow?style=for-the-badge&color=brightgreen)](https://github.com/c4g7-dev/SchemFlow/releases)
-[![Downloads](https://img.shields.io/github/downloads/c4g7-dev/SchemFlow/total?style=for-the-badge&color=blue)](https://github.com/c4g7-dev/SchemFlow/releases)
+[![GitHub Downloads](https://img.shields.io/github/downloads/c4g7-dev/SchemFlow/total?style=for-the-badge&color=blue&label=GitHub%20Downloads)](https://github.com/c4g7-dev/SchemFlow/releases)
 [![Java](https://img.shields.io/badge/Java-21-orange?style=for-the-badge&logo=openjdk)](https://openjdk.org/)
 [![Paper](https://img.shields.io/badge/Paper-1.21+-00ADD8?style=for-the-badge&logo=minecraft)](https://papermc.io/)
 
