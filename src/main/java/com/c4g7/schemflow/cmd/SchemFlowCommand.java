@@ -91,7 +91,7 @@ public class SchemFlowCommand implements CommandExecutor {
                     return true;
                 }
                 String name = args[1];
-                String dest = args.length >= 3 ? args[2] : plugin.getConfig().getString("downloadDir", "plugins/Skript/schematics");
+                String dest = args.length >= 3 ? args[2] : plugin.getConfig().getString("downloadDir", "plugins/FlowStack/schematics");
                 String group = getGroupFlag(args);
                 plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                     try {
@@ -153,7 +153,7 @@ public class SchemFlowCommand implements CommandExecutor {
                 if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow paste</gradient> <white><i>name</i></white> <white><i>[-flags]</i></white> <grey>[-group <i>name</i>]</grey>"); return true; }
                 String name = args[1];
                 final com.c4g7.schemflow.we.WeFlags weFlags = (args.length >= 3 && args[2].startsWith("-")) ? com.c4g7.schemflow.we.WeFlags.parse(args[2]) : null;
-                String dest = plugin.getConfig().getString("downloadDir", "plugins/Skript/schematics");
+                String dest = plugin.getConfig().getString("downloadDir", "plugins/FlowStack/schematics");
                 String group = getGroupFlag(args);
                 plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                     try {

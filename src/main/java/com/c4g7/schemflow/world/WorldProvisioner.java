@@ -69,7 +69,7 @@ public class WorldProvisioner {
 
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
-                Path schm = s3.fetchSchm(schemName, plugin.getConfig().getString("downloadDir", "plugins/Skript/schematics"));
+                Path schm = s3.fetchSchm(schemName, plugin.getConfig().getString("downloadDir", "plugins/FlowStack/schematics"));
                 if (ZipUtils.isZip(schm)) {
                     Path outDir = schm.getParent().resolve(schemName);
                     SafeIO.ensureDir(outDir);

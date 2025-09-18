@@ -21,7 +21,7 @@ public class S3Service implements AutoCloseable {
     private final String defaultGroup;
 
     public S3Service(String endpoint, String accessKey, String secretKey, String bucket, boolean secure, String extension) {
-        this(endpoint, accessKey, secretKey, bucket, secure, extension, "FlowSuite/SchemFlow", "default");
+    this(endpoint, accessKey, secretKey, bucket, secure, extension, "FlowStack/SchemFlow", "default");
     }
 
     public S3Service(String endpoint, String accessKey, String secretKey, String bucket, boolean secure, String extension, String rootDir, String defaultGroup) {
@@ -30,7 +30,7 @@ public class S3Service implements AutoCloseable {
         }
         this.bucket = bucket;
         this.extension = extension != null && !extension.isBlank() ? (extension.startsWith(".") ? extension : "." + extension) : ".schm";
-        this.rootDir = (rootDir == null || rootDir.isBlank()) ? "FlowSuite/SchemFlow" : rootDir.replaceAll("^/+|/+$", "");
+    this.rootDir = (rootDir == null || rootDir.isBlank()) ? "FlowStack/SchemFlow" : rootDir.replaceAll("^/+|/+$", "");
         this.defaultGroup = (defaultGroup == null || defaultGroup.isBlank()) ? "default" : defaultGroup;
         MinioClient.Builder builder = MinioClient.builder().credentials(accessKey, secretKey);
         String ep = endpoint.trim();

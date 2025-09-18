@@ -93,7 +93,7 @@ public class SchemFlowPlugin extends JavaPlugin {
             if (!c.contains("fetchOnStart")) { c.set("fetchOnStart", ""); updated = true; }
             if (!c.contains("cacheRefreshSeconds")) { c.set("cacheRefreshSeconds", 60); updated = true; }
             if (!c.contains("provisionOnStartup")) { c.set("provisionOnStartup", false); updated = true; }
-            if (!c.contains("storage.rootDir")) { c.set("storage.rootDir", "FlowSuite/SchemFlow"); updated = true; }
+            if (!c.contains("storage.rootDir")) { c.set("storage.rootDir", "FlowStack/SchemFlow"); updated = true; }
             if (!c.contains("storage.defaultGroup")) { c.set("storage.defaultGroup", "default"); updated = true; }
             if (updated) saveConfig();
         } catch (Throwable ignored) {}
@@ -113,7 +113,7 @@ public class SchemFlowPlugin extends JavaPlugin {
                 cfg.getString("bucket"),
                 cfg.getBoolean("secure", true),
                 cfg.getString("extension", "schm"),
-                cfg.getString("storage.rootDir", "FlowSuite/SchemFlow"),
+                cfg.getString("storage.rootDir", "FlowStack/SchemFlow"),
                 cfg.getString("storage.defaultGroup", "default")
             );
         } catch (Exception e) {
@@ -157,7 +157,7 @@ public class SchemFlowPlugin extends JavaPlugin {
             final String name = autoFetch;
             getServer().getScheduler().runTaskAsynchronously(this, () -> {
                 try {
-                    s3Service.fetchSchm(name, cfg.getString("downloadDir", "plugins/Skript/schematics"));
+                    s3Service.fetchSchm(name, cfg.getString("downloadDir", "plugins/FlowStack/schematics"));
                 } catch (Exception ex) {
                     getLogger().log(Level.SEVERE, "Fetch on start failed for " + name, ex);
                 }

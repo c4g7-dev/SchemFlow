@@ -13,7 +13,7 @@ command /loadschematic <text>:
     permission: schemflow.admin
     trigger:
         set {_name} to arg-1
-        fetch schemflow schematic {_name} to "plugins/Skript/schematics"
+    fetch schemflow schematic {_name} to "plugins/FlowStack/schematics"
         wait 2 seconds
         paste schemflow schematic {_name} at location of player
         send "&a[SchemFlow] &7Loaded and pasted schematic: &b%{_name}%" to player

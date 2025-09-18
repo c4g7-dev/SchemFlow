@@ -123,11 +123,11 @@ bucket: "schematics"
 extension: "schm"
 
 # Local download target
-downloadDir: "plugins/Skript/schematics"
+downloadDir: "plugins/FlowStack/schematics"
 
 # Storage hierarchy (S3 object keys)
 storage:
-  rootDir: "FlowSuite/SchemFlow"   # Root prefix in bucket
+  rootDir: "FlowStack/SchemFlow"   # Root prefix in bucket
   defaultGroup: "default"         # Used when -group not provided
 ```
 
@@ -199,7 +199,7 @@ Test: `/SchemFlow list`
 
 SchemFlow organizes schematics in S3 by groups using a fixed prefix layout:
 
-- Root prefix (config): `storage.rootDir` (default: `FlowSuite/SchemFlow`)
+- Root prefix (config): `storage.rootDir` (default: `FlowStack/SchemFlow`)
 - Group folder prefix: `SF_` (not configurable)
 - File name prefix: `SF_` (not configurable)
 
@@ -210,7 +210,7 @@ Path format:
 
 Example (default config):
 ```
-FlowSuite/SchemFlow/SF_lobby/SF_castle.schm
+FlowStack/SchemFlow/SF_lobby/SF_castle.schm
 ```
 
 Tips
@@ -230,7 +230,7 @@ SchemFlow provides powerful Skript syntax for automation:
 set {_schematics::*} to schemflow schematics
 
 # Download a schematic
-fetch schemflow schematic "castle" to "plugins/Skript/schematics"
+fetch schemflow schematic "castle" to "plugins/FlowStack/schematics"
 
 # Paste at player location  
 paste schemflow schematic "castle" at location of player
@@ -260,7 +260,7 @@ bucket: "schematics"                 # Storage bucket name
 extension: "schm"                    # File extension for bundles
 
 # Local Storage Settings
-downloadDir: "plugins/Skript/schematics"  # Local cache directory
+downloadDir: "plugins/FlowStack/schematics"  # Local cache directory
 
 # Performance & Caching
 autoListOnStart: true                # List schematics on startup

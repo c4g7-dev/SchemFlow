@@ -6,11 +6,11 @@ bucket: "schematics"
 extension: "schm"
 
 # Where to place downloaded .schm files on disk
-downloadDir: "plugins/Skript/schematics"
+downloadDir: "plugins/FlowStack/schematics"
 
 # Storage hierarchy (S3 object keys)
 storage:
-  rootDir: "FlowSuite/SchemFlow"   # Root folder prefix in the bucket
+  rootDir: "FlowStack/SchemFlow"   # Root folder prefix in the bucket
   defaultGroup: "default"         # Default group if none provided
 
 # Startup behavior

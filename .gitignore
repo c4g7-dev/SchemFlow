@@ -62,3 +62,6 @@ test_server/
 # Config files (may contain sensitive data)
 config-local.yml
 secrets.yml
+
+# Local release tooling (keep out of VCS)
+scripts/release.ps1
