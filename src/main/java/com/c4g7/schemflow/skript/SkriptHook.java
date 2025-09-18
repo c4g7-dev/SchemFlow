@@ -22,8 +22,12 @@ public class SkriptHook {
     public static void register() {
         if (!Skript.isAcceptRegistrations()) return;
     Skript.registerExpression(ExprSchemList.class, String.class, ExpressionType.SIMPLE, "schemflow schematics");
+    Skript.registerExpression(ExprGroups.class, String.class, ExpressionType.SIMPLE, "schemflow groups");
     Skript.registerEffect(EffFetchSchematic.class, "fetch schemflow schematic %string% [to %-string%]");
     Skript.registerEffect(EffPasteSchematic.class, "paste schemflow schematic %string% at %location%");
+    Skript.registerEffect(EffCreateGroup.class, "create schemflow group %string%");
+    Skript.registerEffect(EffTrashSchematic.class, "trash schemflow schematic %string% [in group %-string%]");
+    Skript.registerEffect(EffRestoreSchematic.class, "restore schemflow schematic %string% [in group %-string%]");
     }
 
     @Name("Paste SchemFlow Schematic")
@@ -99,6 +103,22 @@ public class SkriptHook {
         }
     }
 
+    @Name("SchemFlow Groups")
+    @Description("Lists available groups")
+    @Since("0.5.9")
+    public static class ExprGroups extends SimpleExpression<String> {
+        @Override public boolean isSingle() { return false; }
+        @Override public Class<? extends String> getReturnType() { return String.class; }
+        @Override public String toString(Event e, boolean debug) { return "schemflow groups"; }
+        @Override public boolean init(Expression<?>[] exprs, int matchedPattern, Kleenean isDelayed, SkriptParser.ParseResult parseResult) { return true; }
+        @Override protected String[] get(Event e) {
+            try {
+                java.util.List<String> list = SchemFlowPlugin.getInstance().getS3Service().listGroups();
+                return list.toArray(String[]::new);
+            } catch (Exception ex) { return new String[0]; }
+        }
+    }
+
     @Name("Fetch SchemFlow Schematic")
     @Description("Downloads a .schm file by name to an optional directory.")
     @Examples({"fetch schemflow schematic \"map1\" to \"plugins/FlowStack/schematics\""})
@@ -128,6 +148,64 @@ public class SkriptHook {
                 } catch (Exception ex) {
                     SchemFlowPlugin.getInstance().getLogger().severe("Fetch failed: " + ex.getMessage());
                 }
+            });
+        }
+    }
+
+    @Name("Create SchemFlow Group")
+    @Description("Creates a group path under the storage root")
+    @Since("0.5.9")
+    public static class EffCreateGroup extends Effect {
+        private Expression<String> group;
+        @Override public String toString(Event e, boolean debug) { return "create schemflow group"; }
+        @Override public boolean init(Expression<?>[] exprs, int matchedPattern, Kleenean isDelayed, SkriptParser.ParseResult parseResult) {
+            group = (Expression<String>) exprs[0]; return true;
+        }
+        @Override
+        protected void execute(Event e) {
+            String g = group.getSingle(e);
+            if (g == null) return;
+            S3Service s3 = SchemFlowPlugin.getInstance().getS3Service();
+            SchemFlowPlugin.getInstance().getServer().getScheduler().runTaskAsynchronously(SchemFlowPlugin.getInstance(), () -> {
+                try { s3.createGroup(g); } catch (Exception ignored) {}
+            });
+        }
+    }
+
+    @Name("Trash SchemFlow Schematic")
+    @Description("Moves a schematic to trash for undo")
+    @Since("0.5.9")
+    public static class EffTrashSchematic extends Effect {
+        private Expression<String> name; private Expression<String> group;
+        @Override public String toString(Event e, boolean debug) { return "trash schemflow schematic"; }
+        @Override public boolean init(Expression<?>[] exprs, int matchedPattern, Kleenean isDelayed, SkriptParser.ParseResult parseResult) {
+            name = (Expression<String>) exprs[0]; group = exprs.length > 1 ? (Expression<String>) exprs[1] : null; return true;
+        }
+        @Override protected void execute(Event e) {
+            String n = name.getSingle(e); String g = group == null ? null : group.getSingle(e);
+            if (n == null) return;
+            S3Service s3 = SchemFlowPlugin.getInstance().getS3Service();
+            SchemFlowPlugin.getInstance().getServer().getScheduler().runTaskAsynchronously(SchemFlowPlugin.getInstance(), () -> {
+                try { if (g == null) s3.trashSchm(n); else s3.trashSchm(n, g); } catch (Exception ignored) {}
+            });
+        }
+    }
+
+    @Name("Restore SchemFlow Schematic")
+    @Description("Restores a schematic from trash")
+    @Since("0.5.9")
+    public static class EffRestoreSchematic extends Effect {
+        private Expression<String> name; private Expression<String> group;
+        @Override public String toString(Event e, boolean debug) { return "restore schemflow schematic"; }
+        @Override public boolean init(Expression<?>[] exprs, int matchedPattern, Kleenean isDelayed, SkriptParser.ParseResult parseResult) {
+            name = (Expression<String>) exprs[0]; group = exprs.length > 1 ? (Expression<String>) exprs[1] : null; return true;
+        }
+        @Override protected void execute(Event e) {
+            String n = name.getSingle(e); String g = group == null ? null : group.getSingle(e);
+            if (n == null) return;
+            S3Service s3 = SchemFlowPlugin.getInstance().getS3Service();
+            SchemFlowPlugin.getInstance().getServer().getScheduler().runTaskAsynchronously(SchemFlowPlugin.getInstance(), () -> {
+                try { if (g == null) s3.restoreSchm(n); else s3.restoreSchm(n, g); } catch (Exception ignored) {}
             });
         }
     }

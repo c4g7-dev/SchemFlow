@@ -150,10 +150,12 @@ Test: `/SchemFlow list`
 ### Schematic Operations
 | Command | Description | Example |
 |---------|-------------|---------|
-| `/SchemFlow fetch [group:]name [destDir]` | Download schematic to disk | `/SchemFlow fetch lobby:castle` |
+| `/SchemFlow fetch [group:]name [destDir]` or `/SchemFlow fetch /path/to/name(.schm) [destDir]` | Download schematic to disk | `/SchemFlow fetch lobby:castle` |
 | `/SchemFlow upload <id> [-flags] [-group <name>]` | Upload selection as schematic | `/SchemFlow upload castle -eb -group lobby` |
 | `/SchemFlow paste [group:]name [-flags]` | Paste schematic at location | `/SchemFlow paste lobby:castle -ea` |
 | `/SchemFlow delete [group:]name` | Remove schematic from storage | `/SchemFlow delete lobby:old_castle` |
+| `/SchemFlow undo` | Undo last paste/delete | `/SchemFlow undo` |
+| `/SchemFlow redo` | Redo last undo | `/SchemFlow redo` |
 
 ### Selection Tools
 | Command | Description |

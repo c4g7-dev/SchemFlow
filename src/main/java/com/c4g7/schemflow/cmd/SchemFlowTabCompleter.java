@@ -67,7 +67,7 @@ public class SchemFlowTabCompleter implements TabCompleter {
             } catch (Exception ignored) {}
             return out;
         }
-        if (args.length == 3 && ("upload".equalsIgnoreCase(args[0]) )) {
+    if (args.length == 3 && ("upload".equalsIgnoreCase(args[0]) )) {
             String root = args[0].toLowerCase();
             if ((root.equals("upload") && !(sender.hasPermission("schemflow.upload") || sender.hasPermission("schemflow.admin")))) {
                 return Collections.emptyList();
@@ -78,13 +78,30 @@ public class SchemFlowTabCompleter implements TabCompleter {
             if ("-group".startsWith(p)) out.add("-group");
             return out;
         }
-        if (args.length == 4 && ("upload".equalsIgnoreCase(args[0]) || "fetch".equalsIgnoreCase(args[0]))) {
+        if (args.length == 4 && ("upload".equalsIgnoreCase(args[0]))) {
             if (!"-group".equalsIgnoreCase(args[2])) return Collections.emptyList();
             String p = args[3].toLowerCase();
             List<String> out = new ArrayList<>();
             try {
                 java.util.List<String> groups = com.c4g7.schemflow.SchemFlowPlugin.getInstance().getS3Service().listGroups();
                 for (String g : groups) if (g.toLowerCase().startsWith(p)) out.add(g);
+            } catch (Exception ignored) {}
+            return out;
+        }
+        if (args.length == 2 && "fetch".equalsIgnoreCase(args[0]) && args[1].startsWith("/")) {
+            String rel = args[1].substring(1);
+            String p = rel.toLowerCase();
+            List<String> out = new ArrayList<>();
+            try {
+                var s3 = com.c4g7.schemflow.SchemFlowPlugin.getInstance().getS3Service();
+                for (String d : s3.listDirectories(rel)) {
+                    String s = "/" + (rel.isEmpty() ? "" : rel + "/") + d + "/";
+                    if (s.toLowerCase().startsWith("/" + p)) out.add(s);
+                }
+                for (String f : s3.listFiles(rel)) {
+                    String s = "/" + (rel.isEmpty() ? "" : rel + "/") + f;
+                    if (s.toLowerCase().startsWith("/" + p)) out.add(s);
+                }
             } catch (Exception ignored) {}
             return out;
         }

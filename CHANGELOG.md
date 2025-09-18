@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.9 - 2025-09-18
+- Added: `undo` / `redo` commands for last paste/delete (delete now moves to trash for safe restore)
+- Added: Path-based fetch: `/SchemFlow fetch /path/to/name(.schm)` under `storage.rootDir`
+- Added: Skript support for `group:name`, group creation, and trash/restore effects
+- Changed: Prohibit `:` and `/` in schematic and group names with helpful errors
+- Docs: README and wiki updated (commands, Skript)
+
 ## 0.5.8 - 2025-09-18
 - Changed: Paste/Delete/Fetch support `group:name` syntax (e.g., `nature:mountain1`)
 - Changed: Tab completion for `paste`/`delete` lists ALL schematics, showing default group as plain names and other groups as `group:name`

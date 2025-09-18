@@ -94,7 +94,7 @@ public class SchemFlowCommand implements CommandExecutor {
             case "fetch" -> {
                 if (!check(sender, "schemflow.fetch")) return true;
                 if (args.length < 2) {
-                    sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow fetch</gradient> <white><i>[group:]name</i></white> <white><i>[destDir]</i></white>");
+                    sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow fetch</gradient> <white><i>[group:]name</i> or <i>/:path/to/name(.schm)</i></white> <white><i>[destDir]</i></white>");
                     return true;
                 }
                 String tmp = args[1];
@@ -102,11 +102,13 @@ public class SchemFlowCommand implements CommandExecutor {
                 int c = tmp.indexOf(':');
                 if (c > 0) { g = tmp.substring(0, c); tmp = tmp.substring(c + 1); }
                 final String name = tmp;
-                final String group = (g != null && !g.isBlank()) ? g : getGroupFlag(args);
+                final String group = (g != null && !g.isBlank()) ? g : null;
                 String dest = args.length >= 3 ? args[2] : plugin.getConfig().getString("downloadDir", "plugins/FlowStack/schematics");
                 plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                     try {
-                        Path p = (group == null) ? s3.fetchSchm(name, dest) : s3.fetchSchm(name, group, dest);
+                        Path p;
+                        if (args[1].startsWith("/")) p = s3.fetchByPath(args[1].substring(1), dest);
+                        else p = (group == null) ? s3.fetchSchm(name, dest) : s3.fetchSchm(name, group, dest);
                         sendMM(sender, prefix() + " <green>Downloaded to </green><aqua>" + p + "</aqua>");
                     } catch (Exception e) {
                         sendMM(sender, prefix() + " <red>Fetch failed:</red> <grey>" + e.getMessage() + "</grey>");

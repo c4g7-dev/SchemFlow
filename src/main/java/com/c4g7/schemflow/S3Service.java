@@ -256,6 +256,69 @@ public class S3Service implements AutoCloseable {
         if (group.contains("/")) throw new IllegalArgumentException("'/' is prohibited in group names");
     }
 
+    // --- Path-based listing/fetching under rootDir (not using groups) ---
+    public java.util.List<String> listDirectories(String relPath) throws Exception {
+        String rp = normalizeRelPath(relPath);
+        String prefix = rootDir + "/" + rp;
+        if (!prefix.endsWith("/")) prefix += "/";
+        Iterable<Result<Item>> results = client.listObjects(ListObjectsArgs.builder().bucket(bucket).recursive(true).prefix(prefix).build());
+        java.util.Set<String> dirs = new java.util.LinkedHashSet<>();
+        for (Result<Item> r : results) {
+            Item it = r.get();
+            String key = it.objectName();
+            if (!key.startsWith(prefix)) continue;
+            String rest = key.substring(prefix.length());
+            int slash = rest.indexOf('/');
+            if (slash > 0) {
+                String dir = rest.substring(0, slash);
+                if (!dir.isBlank() && !dir.startsWith(".")) dirs.add(dir);
+            }
+        }
+        return new java.util.ArrayList<>(dirs);
+    }
+
+    public java.util.List<String> listFiles(String relPath) throws Exception {
+        String rp = normalizeRelPath(relPath);
+        String prefix = rootDir + "/" + rp;
+        if (!prefix.endsWith("/")) prefix += "/";
+        Iterable<Result<Item>> results = client.listObjects(ListObjectsArgs.builder().bucket(bucket).recursive(false).prefix(prefix).build());
+        java.util.List<String> files = new java.util.ArrayList<>();
+        for (Result<Item> r : results) {
+            Item it = r.get();
+            String key = it.objectName();
+            if (!key.startsWith(prefix)) continue;
+            String rest = key.substring(prefix.length());
+            if (!rest.contains("/") && rest.toLowerCase().endsWith(extension)) {
+                String base = Path.of(rest).getFileName().toString();
+                files.add(base);
+            }
+        }
+        return files;
+    }
+
+    public Path fetchByPath(String relFilePath, String destDir) throws Exception {
+        String rp = normalizeRelPath(relFilePath);
+        if (rp.endsWith("/")) throw new IllegalArgumentException("Path points to a directory");
+        if (!rp.toLowerCase().endsWith(extension)) rp = rp + extension;
+        String key = rootDir + "/" + rp;
+        Path dir = Path.of(destDir);
+        SafeIO.ensureDir(dir);
+        Path out = dir.resolve(Path.of(rp).getFileName().toString());
+        try (InputStream in = client.getObject(GetObjectArgs.builder().bucket(bucket).object(key).build())) {
+            Files.copy(in, out, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        }
+        return out;
+    }
+
+    private String normalizeRelPath(String relPath) {
+        if (relPath == null) return "";
+        String p = relPath.replace("\\", "/");
+        if (p.startsWith("/")) p = p.substring(1);
+        if (p.contains("..")) throw new IllegalArgumentException("'..' is prohibited in paths");
+        if (p.contains(":")) throw new IllegalArgumentException("':' is prohibited in paths");
+        return p;
+    }
+
     @Override
     public void close() { }
 }
