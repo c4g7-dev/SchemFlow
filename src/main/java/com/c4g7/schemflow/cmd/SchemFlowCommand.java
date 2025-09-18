@@ -189,6 +189,12 @@ public class SchemFlowCommand implements CommandExecutor {
                                             boolean ignoreAir = flagsFinal != null && flagsFinal.ignoreAir;
                                             boolean biomes = flagsFinal == null || flagsFinal.biomes;
                                             com.c4g7.schemflow.we.WorldEditUtils.paste(at, schemFile, ents, ignoreAir, biomes);
+                                            if (p != null) {
+                                                plugin.getUndoManager().record(new com.c4g7.schemflow.util.UndoManager.Action(
+                                                        com.c4g7.schemflow.util.UndoManager.Action.Type.PASTE,
+                                                        p.getUniqueId(), group, name, at, schemFile
+                                                ));
+                                            }
                                             sendMM(p, prefix() + " <green>Pasted schematic.</green>");
                                         } catch (Exception ignored) {
                                             sendMM(p, prefix() + " <red>Failed to paste schematic.</red>");
@@ -213,11 +219,53 @@ public class SchemFlowCommand implements CommandExecutor {
                 final String delGroup = dGroup;
                 plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                     try {
-                        if (delGroup == null) s3.deleteSchm(delName); else s3.deleteSchm(delName, delGroup);
+                        if (delGroup == null) s3.trashSchm(delName); else s3.trashSchm(delName, delGroup);
                         plugin.refreshSchematicCacheAsync();
                         sendMM(sender, prefix() + " <yellow>Deleted schematic </yellow><aqua>" + ((delGroup != null) ? delGroup + ":" : "") + delName + "</aqua>");
                     } catch (Exception e) {
                         sendMM(sender, prefix() + " <red>Delete failed:</red> <grey>" + e.getMessage() + "</grey>");
+                    }
+                });
+            }
+            case "undo" -> {
+                if (!(sender instanceof Player)) { sendMM(sender, prefix() + " <red>Player only.</red>"); return true; }
+                var act = plugin.getUndoManager().popUndo();
+                if (act == null) { sendMM(sender, prefix() + " <grey>Nothing to undo.</grey>"); return true; }
+                plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                    try {
+                        if (act.type == com.c4g7.schemflow.util.UndoManager.Action.Type.PASTE) {
+                            // Re-paste air over region by reusing same schematic with ignoreAir=false to revert
+                            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                                try { com.c4g7.schemflow.we.WorldEditUtils.paste(act.at, act.schemFile, false, false, true); } catch (Exception ignored) {}
+                            });
+                        } else if (act.type == com.c4g7.schemflow.util.UndoManager.Action.Type.DELETE) {
+                            plugin.getS3Service().restoreSchm(act.name, act.group);
+                            plugin.refreshSchematicCacheAsync();
+                        }
+                        plugin.getUndoManager().pushRedo(act);
+                        sendMM(sender, prefix() + " <green>Undo done.</green>");
+                    } catch (Exception ex) {
+                        sendMM(sender, prefix() + " <red>Undo failed:</red> <grey>" + ex.getMessage() + "</grey>");
+                    }
+                });
+            }
+            case "redo" -> {
+                if (!(sender instanceof Player)) { sendMM(sender, prefix() + " <red>Player only.</red>"); return true; }
+                var act = plugin.getUndoManager().popRedo();
+                if (act == null) { sendMM(sender, prefix() + " <grey>Nothing to redo.</grey>"); return true; }
+                plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                    try {
+                        if (act.type == com.c4g7.schemflow.util.UndoManager.Action.Type.PASTE) {
+                            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                                try { com.c4g7.schemflow.we.WorldEditUtils.paste(act.at, act.schemFile, true, false, true); } catch (Exception ignored) {}
+                            });
+                        } else if (act.type == com.c4g7.schemflow.util.UndoManager.Action.Type.DELETE) {
+                            if (act.group == null) plugin.getS3Service().trashSchm(act.name); else plugin.getS3Service().trashSchm(act.name, act.group);
+                            plugin.refreshSchematicCacheAsync();
+                        }
+                        sendMM(sender, prefix() + " <green>Redo done.</green>");
+                    } catch (Exception ex) {
+                        sendMM(sender, prefix() + " <red>Redo failed:</red> <grey>" + ex.getMessage() + "</grey>");
                     }
                 });
             }
@@ -279,7 +327,9 @@ public class SchemFlowCommand implements CommandExecutor {
         "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " reload</gradient> <dark_grey>-</dark_grey> Reload config and services</grey>\n" +
                 "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " provision</gradient> <white><i>world</i></white> <dark_grey>-</dark_grey> Create/load and paste base</grey>\n" +
                 "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " groups</gradient> <dark_grey>-</dark_grey> List all groups</grey>\n" +
-                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " group create</gradient> <white><i>name</i></white> <dark_grey>-</dark_grey> Create group path</grey>";
+                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " group create</gradient> <white><i>name</i></white> <dark_grey>-</dark_grey> Create group path</grey>\n" +
+                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " undo</gradient> <dark_grey>-</dark_grey> Undo last paste/delete</grey>\n" +
+                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " redo</gradient> <dark_grey>-</dark_grey> Redo last undo</grey>";
         var adv = com.c4g7.schemflow.SchemFlowPlugin.getInstance().getAudiences();
         if (adv != null) adv.sender(sender).sendMessage(mm.deserialize(msg));
         else sender.sendMessage(mm.deserialize(msg));

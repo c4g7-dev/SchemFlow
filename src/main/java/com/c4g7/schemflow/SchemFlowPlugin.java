@@ -17,6 +17,7 @@ public class SchemFlowPlugin extends JavaPlugin {
     private net.kyori.adventure.text.minimessage.MiniMessage miniMessage;
     private java.util.concurrent.CopyOnWriteArrayList<String> schemCache = new java.util.concurrent.CopyOnWriteArrayList<>();
     private int cacheTaskId = -1;
+    private com.c4g7.schemflow.util.UndoManager undoManager = new com.c4g7.schemflow.util.UndoManager();
 
     public static SchemFlowPlugin getInstance() { return instance; }
     public S3Service getS3Service() { return s3Service; }
@@ -25,6 +26,7 @@ public class SchemFlowPlugin extends JavaPlugin {
     public net.kyori.adventure.platform.bukkit.BukkitAudiences getAudiences() { return audiences; }
     public net.kyori.adventure.text.minimessage.MiniMessage getMiniMessage() { return miniMessage; }
     public java.util.List<String> getSchematicCache() { return schemCache; }
+    public com.c4g7.schemflow.util.UndoManager getUndoManager() { return undoManager; }
     public void refreshSchematicCacheAsync() {
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
             try {

@@ -107,6 +107,8 @@ public class S3Service implements AutoCloseable {
     public void uploadSchm(Path file, String objectName) throws Exception { uploadSchm(file, objectName, defaultGroup); }
 
     public void uploadSchm(Path file, String objectName, String group) throws Exception {
+        ensureValidName(objectName);
+        ensureValidGroup(group);
         if (!objectName.toLowerCase().endsWith(extension)) objectName = objectName + extension;
         // Normalize legacy prefix from provided names
         if (objectName.startsWith(legacySchemPrefix)) objectName = objectName.substring(legacySchemPrefix.length());
@@ -130,9 +132,36 @@ public class S3Service implements AutoCloseable {
     public void deleteSchm(String name) throws Exception { deleteSchm(name, defaultGroup); }
 
     public void deleteSchm(String name, String group) throws Exception {
+        ensureValidName(name);
+        ensureValidGroup(group);
         if (!name.toLowerCase().endsWith(extension)) name = name + extension;
         String objKey = resolveObjectKeyForRead(name, group);
         client.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(objKey).build());
+    }
+
+    public void trashSchm(String name) throws Exception { trashSchm(name, defaultGroup); }
+
+    public void trashSchm(String name, String group) throws Exception {
+        ensureValidName(name);
+        ensureValidGroup(group);
+        if (!name.toLowerCase().endsWith(extension)) name = name + extension;
+        String src = resolveObjectKeyForRead(name, group);
+        String dst = buildTrashKey(name, group);
+        client.copyObject(CopyObjectArgs.builder().bucket(bucket).object(dst).source(CopySource.builder().bucket(bucket).object(src).build()).build());
+        client.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(src).build());
+    }
+
+    public void restoreSchm(String name) throws Exception { restoreSchm(name, defaultGroup); }
+
+    public void restoreSchm(String name, String group) throws Exception {
+        ensureValidName(name);
+        ensureValidGroup(group);
+        if (!name.toLowerCase().endsWith(extension)) name = name + extension;
+        String src = buildTrashKey(name, group);
+        String dst = buildObjectKey(name, group);
+        if (!objectExists(src)) throw new IllegalStateException("No trashed item named " + name + " in group " + group);
+        client.copyObject(CopyObjectArgs.builder().bucket(bucket).object(dst).source(CopySource.builder().bucket(bucket).object(src).build()).build());
+        client.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(src).build());
     }
 
     public List<String> listGroups() throws Exception {
@@ -191,6 +220,13 @@ public class S3Service implements AutoCloseable {
         return rootDir + "/" + groupPrefix + grp + "/" + nameOnly;
     }
 
+    private String buildTrashKey(String fileName, String group) {
+        String grp = (group == null || group.isBlank()) ? defaultGroup : group;
+        String nameOnly = Path.of(fileName).getFileName().toString();
+        if (!nameOnly.toLowerCase().endsWith(extension)) nameOnly = nameOnly + extension;
+        return rootDir + "/.trash/" + groupPrefix + grp + "/" + nameOnly;
+    }
+
     private boolean objectExists(String key) {
         try {
             client.statObject(StatObjectArgs.builder().bucket(bucket).object(key).build());
@@ -206,6 +242,18 @@ public class S3Service implements AutoCloseable {
         String legacy = buildLegacyObjectKey(fileName, group);
         if (objectExists(legacy)) return legacy;
         return primary; // Fall back; will trigger an error when accessed
+    }
+
+    private void ensureValidName(String name) {
+        if (name == null || name.isBlank()) throw new IllegalArgumentException("Name is required");
+    if (name.contains(":")) throw new IllegalArgumentException("':' is prohibited in names");
+        if (name.contains("/")) throw new IllegalArgumentException("'/' is prohibited in names");
+    }
+
+    private void ensureValidGroup(String group) {
+        if (group == null) return;
+    if (group.contains(":")) throw new IllegalArgumentException("':' is prohibited in group names");
+        if (group.contains("/")) throw new IllegalArgumentException("'/' is prohibited in group names");
     }
 
     @Override
