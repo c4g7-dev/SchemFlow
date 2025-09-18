@@ -109,18 +109,6 @@
 ### 📋 **Requirements**
 - **Minecraft**: 1.21.8+ (Paper/Purpur recommended)
 - **Java**: 21
-- **WorldEdit**: 7.3+ (FastAsyncWorldEdit supported)
-- **Storage**: S3-compatible endpoint (MinIO, AWS S3, etc.)
-- **Optional**: Skript 2.7+ for advanced automation
-
-### ⚡ **Installation**
-
-1. **Download** the latest `SchemFlow-0.5.6-all.jar` from [releases](https://github.com/c4g7-dev/SchemFlow/releases)
-2. **Drop** into your `plugins/` directory
-3. **Install dependencies**: WorldEdit (required), Skript (optional)
-4. **Start server** to generate configuration files
-5. **Configure** your S3 credentials in `plugins/SchemFlow/config.yml`
-6. **Restart** and enjoy lightning-fast schematic management!
 
 ### ⚙️ **Quick Configuration**
 
@@ -128,24 +116,41 @@
 # plugins/SchemFlow/config.yml
 endpoint: "your-minio-server.com:9000"
 accessKey: "your-access-key"
+| `/SchemFlow groups` | List all groups | `/SchemFlow groups` |
+| `/SchemFlow group create <name>` | Create a group | `/SchemFlow group create lobby` |
 secretKey: "your-secret-key" 
 bucket: "schematics"
 secure: true  # Use HTTPS
 ```
-
-Note: For MinIO, `accessKey` is the MinIO username and `secretKey` is that user's password. For other S3 providers, use their respective access key and secret key.
-
+| `/SchemFlow fetch <name> [-group <name>]` | Download schematic to disk | `/SchemFlow fetch castle -group lobby` |
+| `/SchemFlow upload <id> [-flags] [-group <name>]` | Upload selection as schematic | `/SchemFlow upload castle -eb -group lobby` |
+| `/SchemFlow paste <name> [-flags] [-group <name>]` | Paste schematic at location | `/SchemFlow paste castle -ea -group lobby` |
 **Test your setup**: `/SchemFlow list`
 
----
-
-## 🎮 Command Reference
-
+- **`-group <name>`**: Read/write schematics under a named group
+- **Combine**: `-eab` for all WorldEdit flags together
 <details>
 <summary><b>📜 Click to expand command list</b></summary>
 
-### **Core Commands**
+- `schemflow.groups`: List groups (default: op)
 ## 🔐 Permissions
+
+- `schemflow.admin` — full access (default: op)
+- `schemflow.help` — view help (default: true)
+- `schemflow.list` — list schematics (default: true)
+- `schemflow.fetch` — download schematic (default: true)
+- `schemflow.pos1` — set first selection corner (default: true)
+- `schemflow.pos2` — set second selection corner (default: true)
+- `schemflow.upload` — export and upload schematic (default: op)
+- `schemflow.paste` — paste schematic at location (default: op)
+- `schemflow.delete` — delete schematic from storage (default: op)
+- `schemflow.cache` — refresh schematic cache (default: op)
+- `schemflow.reload` — reload configuration and services (default: op)
+- `schemflow.provision` — provision world base (default: op)
+- `schemflow.groups` — list groups (default: op)
+- `schemflow.group.create` — create group (default: op)
+
+- `schemflow.group.create`: Create group (default: op)
 
 - `schemflow.admin`: Full access to all commands (default: op)
 - `schemflow.help`: View help (default: true)
@@ -166,13 +171,15 @@ Note: For MinIO, `accessKey` is the MinIO username and `secretKey` is that user'
 | `/SchemFlow list` | List all stored schematics | `/SchemFlow list` |
 | `/SchemFlow cache` | Refresh schematic cache | `/SchemFlow cache` |
 | `/SchemFlow reload` | Reload configuration | `/SchemFlow reload` |
+| `/SchemFlow groups` | List all groups | `/SchemFlow groups` |
+| `/SchemFlow group create <name>` | Create a group | `/SchemFlow group create lobby` |
 
 ### **Schematic Operations**
 | Command | Description | Example |
 |---------|-------------|---------|
-| `/SchemFlow fetch <name>` | Download schematic to disk | `/SchemFlow fetch castle` |
-| `/SchemFlow upload <id> [-flags]` | Upload selection as schematic | `/SchemFlow upload castle -eb` |
-| `/SchemFlow paste <name> [-flags]` | Paste schematic at location | `/SchemFlow paste castle -ea` |
+| `/SchemFlow fetch <name> [-group <name>]` | Download schematic to disk | `/SchemFlow fetch castle -group lobby` |
+| `/SchemFlow upload <id> [-flags] [-group <name>]` | Upload selection as schematic | `/SchemFlow upload castle -eb -group lobby` |
+| `/SchemFlow paste <name> [-flags] [-group <name>]` | Paste schematic at location | `/SchemFlow paste castle -ea -group lobby` |
 | `/SchemFlow delete <name>` | Remove schematic from storage | `/SchemFlow delete old_castle` |
 
 ### **Selection Tools**
@@ -190,7 +197,8 @@ Note: For MinIO, `accessKey` is the MinIO username and `secretKey` is that user'
 - **`-e`**: Include/paste entities
 - **`-a`**: Ignore air blocks when pasting  
 - **`-b`**: Include/preserve biomes
-- **Combine**: `-eab` for all flags together
+- **`-group <name>`**: Read/write schematics under a named group
+- **Combine**: `-eab` for all WorldEdit flags together
 
 </details>
 
