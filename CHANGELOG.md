@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.8 - 2025-09-18
+- Changed: Paste/Delete/Fetch support `group:name` syntax (e.g., `nature:mountain1`)
+- Changed: Tab completion for `paste`/`delete` lists ALL schematics, showing default group as plain names and other groups as `group:name`
+- Changed: `list` output grouped by group with section headers; cache/reload messages show total and group counts
+- Changed: Remove schematic-name prefixing from uploads; keep legacy compatibility when reading existing prefixed objects
+- Added: Root path creation on enable/reload; collision check on upload per-group
+- Docs: Updated README/command usage and plugin.yml
+
 ## 0.5.6 - 2025-09-18
 - Added: Group system with S3 hierarchy: `rootDir/SF_<group>/SF_<name>.schm`
 - Added: `-group <name>` flag for `upload`, `fetch`, `paste`, `delete`, and support in `list`

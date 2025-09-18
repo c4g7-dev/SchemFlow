@@ -17,7 +17,8 @@ public class S3Service implements AutoCloseable {
     private final String extension;
     private final String rootDir;
     private final String groupPrefix = "SF_";
-    private final String schemPrefix = "SF_";
+    // Legacy: some older uploads may have had a schematic name prefix. New uploads must NOT use it.
+    private final String legacySchemPrefix = "SF_";
     private final String defaultGroup;
 
     public S3Service(String endpoint, String accessKey, String secretKey, String bucket, boolean secure, String extension) {
@@ -66,6 +67,8 @@ public class S3Service implements AutoCloseable {
             String key = it.objectName();
             if (key.toLowerCase().endsWith(extension)) {
                 String fileName = Path.of(key).getFileName().toString();
+                // Hide legacy schematic prefix from user-facing names
+                if (fileName.startsWith(legacySchemPrefix)) fileName = fileName.substring(legacySchemPrefix.length());
                 names.add(fileName);
             }
         }
@@ -80,7 +83,7 @@ public class S3Service implements AutoCloseable {
         SafeIO.ensureDir(dir);
         Path out = dir.resolve(Path.of(name).getFileName().toString());
 
-        String objKey = buildObjectKey(name, group);
+        String objKey = resolveObjectKeyForRead(name, group);
         try (InputStream in = client.getObject(GetObjectArgs.builder().bucket(bucket).object(objKey).build())) {
             Files.copy(in, out, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
         }
@@ -105,7 +108,13 @@ public class S3Service implements AutoCloseable {
 
     public void uploadSchm(Path file, String objectName, String group) throws Exception {
         if (!objectName.toLowerCase().endsWith(extension)) objectName = objectName + extension;
+        // Normalize legacy prefix from provided names
+        if (objectName.startsWith(legacySchemPrefix)) objectName = objectName.substring(legacySchemPrefix.length());
         String objKey = buildObjectKey(objectName, group);
+        // Collision check (also check legacy key for backward-compat)
+        if (objectExists(objKey) || objectExists(buildLegacyObjectKey(objectName, group))) {
+            throw new IllegalStateException("Name already taken in this group: " + objectName);
+        }
         try (InputStream in = Files.newInputStream(file)) {
             client.putObject(
                     PutObjectArgs.builder()
@@ -122,7 +131,7 @@ public class S3Service implements AutoCloseable {
 
     public void deleteSchm(String name, String group) throws Exception {
         if (!name.toLowerCase().endsWith(extension)) name = name + extension;
-        String objKey = buildObjectKey(name, group);
+        String objKey = resolveObjectKeyForRead(name, group);
         client.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(objKey).build());
     }
 
@@ -158,15 +167,45 @@ public class S3Service implements AutoCloseable {
         }
     }
 
+    public void createRoot() throws Exception {
+        String key = rootDir + "/.keep";
+        byte[] empty = new byte[0];
+        try (InputStream in = new java.io.ByteArrayInputStream(empty)) {
+            client.putObject(PutObjectArgs.builder().bucket(bucket).object(key).stream(in, 0, -1).contentType("application/octet-stream").build());
+        }
+    }
+
     private String buildObjectKey(String fileName, String group) {
         String grp = (group == null || group.isBlank()) ? defaultGroup : group;
-        String base = fileName;
-        String nameOnly = Path.of(base).getFileName().toString();
-        if (!nameOnly.toUpperCase().startsWith(schemPrefix)) {
-            String withoutExt = nameOnly.endsWith(extension) ? nameOnly.substring(0, nameOnly.length() - extension.length()) : nameOnly;
-            nameOnly = schemPrefix + withoutExt + extension;
-        }
+        String nameOnly = Path.of(fileName).getFileName().toString();
+        // Ensure extension only; no schematic name prefixing
+        if (!nameOnly.toLowerCase().endsWith(extension)) nameOnly = nameOnly + extension;
         return rootDir + "/" + groupPrefix + grp + "/" + nameOnly;
+    }
+
+    private String buildLegacyObjectKey(String fileName, String group) {
+        String grp = (group == null || group.isBlank()) ? defaultGroup : group;
+        String nameOnly = Path.of(fileName).getFileName().toString();
+        if (!nameOnly.toLowerCase().endsWith(extension)) nameOnly = nameOnly + extension;
+        if (!nameOnly.startsWith(legacySchemPrefix)) nameOnly = legacySchemPrefix + nameOnly;
+        return rootDir + "/" + groupPrefix + grp + "/" + nameOnly;
+    }
+
+    private boolean objectExists(String key) {
+        try {
+            client.statObject(StatObjectArgs.builder().bucket(bucket).object(key).build());
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private String resolveObjectKeyForRead(String fileName, String group) {
+        String primary = buildObjectKey(fileName, group);
+        if (objectExists(primary)) return primary;
+        String legacy = buildLegacyObjectKey(fileName, group);
+        if (objectExists(legacy)) return legacy;
+        return primary; // Fall back; will trigger an error when accessed
     }
 
     @Override

@@ -47,18 +47,29 @@ public class SchemFlowTabCompleter implements TabCompleter {
                 return Collections.emptyList();
             }
             String p = args[1].toLowerCase();
-            java.util.List<String> cache = com.c4g7.schemflow.SchemFlowPlugin.getInstance().getSchematicCache();
             List<String> out = new ArrayList<>();
-            for (String name : cache) {
-                String base = name.endsWith(".schm") ? name.substring(0, name.length() - 5) : name;
-                if (base.toLowerCase().startsWith(p)) out.add(base);
-            }
+            try {
+                var plugin = com.c4g7.schemflow.SchemFlowPlugin.getInstance();
+                var s3 = plugin.getS3Service();
+                // Default group first without prefix
+                for (String n : s3.listSchm()) {
+                    String base = n.endsWith(".schm") ? n.substring(0, n.length() - 5) : n;
+                    if (base.toLowerCase().startsWith(p)) out.add(base);
+                }
+                // Then other groups with group:name format
+                for (String g : s3.listGroups()) {
+                    for (String n : s3.listSchm(g)) {
+                        String base = n.endsWith(".schm") ? n.substring(0, n.length() - 5) : n;
+                        String pref = g + ":" + base;
+                        if (pref.toLowerCase().startsWith(p)) out.add(pref);
+                    }
+                }
+            } catch (Exception ignored) {}
             return out;
         }
-        if (args.length == 3 && ("upload".equalsIgnoreCase(args[0]) || "paste".equalsIgnoreCase(args[0]))) {
+        if (args.length == 3 && ("upload".equalsIgnoreCase(args[0]) )) {
             String root = args[0].toLowerCase();
-            if ((root.equals("upload") && !(sender.hasPermission("schemflow.upload") || sender.hasPermission("schemflow.admin"))) ||
-                (root.equals("paste") && !(sender.hasPermission("schemflow.paste") || sender.hasPermission("schemflow.admin")))) {
+            if ((root.equals("upload") && !(sender.hasPermission("schemflow.upload") || sender.hasPermission("schemflow.admin")))) {
                 return Collections.emptyList();
             }
             String p = args[2].toLowerCase();
@@ -67,7 +78,7 @@ public class SchemFlowTabCompleter implements TabCompleter {
             if ("-group".startsWith(p)) out.add("-group");
             return out;
         }
-        if (args.length == 4 && ("upload".equalsIgnoreCase(args[0]) || "paste".equalsIgnoreCase(args[0]) || "fetch".equalsIgnoreCase(args[0]))) {
+        if (args.length == 4 && ("upload".equalsIgnoreCase(args[0]) || "fetch".equalsIgnoreCase(args[0]))) {
             if (!"-group".equalsIgnoreCase(args[2])) return Collections.emptyList();
             String p = args[3].toLowerCase();
             List<String> out = new ArrayList<>();

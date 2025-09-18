@@ -9,7 +9,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.nio.file.Path;
-import java.util.List;
 
 public class SchemFlowCommand implements CommandExecutor {
     private final SchemFlowPlugin plugin;
@@ -43,10 +42,8 @@ public class SchemFlowCommand implements CommandExecutor {
                 sendMM(sender, prefix() + " <green>Config reloaded.</green> <grey>Refreshing cache...</grey>");
                 plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                     try {
-                        java.util.List<String> list = plugin.getS3Service().listSchm();
-                        com.c4g7.schemflow.SchemFlowPlugin.getInstance().getSchematicCache().clear();
-                        for (String n : list) com.c4g7.schemflow.SchemFlowPlugin.getInstance().getSchematicCache().add(n);
-                        sendMM(sender, prefix() + " <green>Cache size:</green> <aqua>" + list.size() + "</aqua>");
+                        var stats = refreshCacheAllGroups();
+                        sendMM(sender, prefix() + " <green>Cache size:</green> <aqua>" + stats.total + "</aqua> <grey>from</grey> <aqua>" + stats.groupCount + "</aqua> <grey>groups</grey>");
                     } catch (Exception e) {
                         sendMM(sender, prefix() + " <red>Cache refresh failed:</red> <grey>" + e.getMessage() + "</grey>");
                     }
@@ -58,10 +55,8 @@ public class SchemFlowCommand implements CommandExecutor {
                 sendMM(sender, prefix() + " <grey>Refreshing schematic cache...</grey>");
                 plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                     try {
-                        java.util.List<String> list = plugin.getS3Service().listSchm();
-                        com.c4g7.schemflow.SchemFlowPlugin.getInstance().getSchematicCache().clear();
-                        for (String n : list) com.c4g7.schemflow.SchemFlowPlugin.getInstance().getSchematicCache().add(n);
-                        sendMM(sender, prefix() + " <green>Cache refreshed:</green> <aqua>" + list.size() + "</aqua> <grey>schematics</grey>");
+                        var stats = refreshCacheAllGroups();
+                        sendMM(sender, prefix() + " <green>Cache refreshed:</green> <aqua>" + stats.total + "</aqua> <grey>schematics from</grey> <aqua>" + stats.groupCount + "</aqua> <grey>groups</grey>");
                     } catch (Exception e) {
                         sendMM(sender, prefix() + " <red>Cache refresh failed:</red> <grey>" + e.getMessage() + "</grey>");
                     }
@@ -70,15 +65,27 @@ public class SchemFlowCommand implements CommandExecutor {
             }
             case "list" -> plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                 if (!sender.hasPermission("schemflow.list") && !sender.hasPermission("schemflow.admin")) { sendMM(sender, prefix() + " <red>No permission.</red>"); return; }
-                String group = getGroupFlag(args);
                 try {
-                    List<String> names = (group == null) ? s3.listSchm() : s3.listSchm(group);
-                    if (names == null || names.isEmpty()) {
-                        sendMM(sender, prefix() + " <grey>No schematics found.</grey>");
-                    } else {
-                        String joined = names.stream().map(n -> "<aqua>" + n + "</aqua>").reduce((a,b) -> a + ", " + b).orElse("");
-                        sendMM(sender, prefix() + " <grey>Found:</grey> " + joined);
+                    // Build grouped listing
+                    java.util.List<String> groups = s3.listGroups();
+                    java.util.Map<String, java.util.List<String>> grouped = new java.util.LinkedHashMap<>();
+                    // Always include default first
+                    grouped.put("Default", s3.listSchm(null));
+                    for (String g : groups) {
+                        if (g.equalsIgnoreCase("default")) continue;
+                        grouped.put(g, s3.listSchm(g));
                     }
+                    StringBuilder sb = new StringBuilder();
+                    int total = 0;
+                    for (var entry : grouped.entrySet()) {
+                        java.util.List<String> vals = entry.getValue();
+                        if (vals == null || vals.isEmpty()) continue;
+                        total += vals.size();
+                        sb.append("<grey>" + entry.getKey() + ":</grey>\n");
+                        for (String n : vals) sb.append(" - <aqua>" + n + "</aqua>\n");
+                    }
+                    if (total == 0) sendMM(sender, prefix() + " <grey>No schematics found.</grey>");
+                    else sendMM(sender, prefix() + " <grey>Schematics (" + total + "):</grey>\n" + sb);
                     plugin.refreshSchematicCacheAsync();
                 } catch (Exception e) {
                     sendMM(sender, prefix() + " <red>List failed:</red> <grey>" + e.getMessage() + "</grey>");
@@ -87,12 +94,16 @@ public class SchemFlowCommand implements CommandExecutor {
             case "fetch" -> {
                 if (!check(sender, "schemflow.fetch")) return true;
                 if (args.length < 2) {
-                    sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow fetch</gradient> <white><i>name</i></white> <white><i>[destDir]</i></white> <grey>[-group <i>name</i>]</grey>");
+                    sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow fetch</gradient> <white><i>[group:]name</i></white> <white><i>[destDir]</i></white>");
                     return true;
                 }
-                String name = args[1];
+                String tmp = args[1];
+                String g = null;
+                int c = tmp.indexOf(':');
+                if (c > 0) { g = tmp.substring(0, c); tmp = tmp.substring(c + 1); }
+                final String name = tmp;
+                final String group = (g != null && !g.isBlank()) ? g : getGroupFlag(args);
                 String dest = args.length >= 3 ? args[2] : plugin.getConfig().getString("downloadDir", "plugins/FlowStack/schematics");
-                String group = getGroupFlag(args);
                 plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                     try {
                         Path p = (group == null) ? s3.fetchSchm(name, dest) : s3.fetchSchm(name, group, dest);
@@ -150,11 +161,15 @@ public class SchemFlowCommand implements CommandExecutor {
             case "paste" -> {
                 if (!check(sender, "schemflow.paste")) return true;
                 if (!(sender instanceof Player p)) { sendMM(sender, prefix() + " <red>Player only.</red>"); return true; }
-                if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow paste</gradient> <white><i>name</i></white> <white><i>[-flags]</i></white> <grey>[-group <i>name</i>]</grey>"); return true; }
-                String name = args[1];
+                if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow paste</gradient> <white><i>[group:]name</i></white> <white><i>[-flags]</i></white>"); return true; }
+                String tmpName = args[1];
+                String tmpGroup = null;
+                int colon = tmpName.indexOf(':');
+                if (colon > 0) { tmpGroup = tmpName.substring(0, colon); tmpName = tmpName.substring(colon + 1); }
                 final com.c4g7.schemflow.we.WeFlags weFlags = (args.length >= 3 && args[2].startsWith("-")) ? com.c4g7.schemflow.we.WeFlags.parse(args[2]) : null;
                 String dest = plugin.getConfig().getString("downloadDir", "plugins/FlowStack/schematics");
-                String group = getGroupFlag(args);
+                final String name = tmpName;
+                final String group = tmpGroup;
                 plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                     try {
                         Path schm = (group == null) ? s3.fetchSchm(name, dest) : s3.fetchSchm(name, group, dest);
@@ -182,7 +197,7 @@ public class SchemFlowCommand implements CommandExecutor {
                                 }
                             }
                         }
-                        sendMM(sender, prefix() + " <green>Downloaded schematic </green><aqua>" + name + "</aqua>");
+                        sendMM(sender, prefix() + " <green>Downloaded schematic </green><aqua>" + ((group != null) ? group + ":" : "") + name + "</aqua>");
                     } catch (Exception e) {
                         sendMM(sender, prefix() + " <red>Paste failed:</red> <grey>" + e.getMessage() + "</grey>");
                     }
@@ -190,14 +205,17 @@ public class SchemFlowCommand implements CommandExecutor {
             }
             case "delete" -> {
                 if (!check(sender, "schemflow.delete")) return true;
-                if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow delete</gradient> <white><i>name</i></white>"); return true; }
-                String name = args[1];
-                String group = getGroupFlag(args);
+                if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow delete</gradient> <white><i>[group:]name</i></white>"); return true; }
+                String dName = args[1];
+                String dGroup = null;
+                int colon = dName.indexOf(':'); if (colon > 0) { dGroup = dName.substring(0, colon); dName = dName.substring(colon + 1); }
+                final String delName = dName;
+                final String delGroup = dGroup;
                 plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                     try {
-                        if (group == null) s3.deleteSchm(name); else s3.deleteSchm(name, group);
+                        if (delGroup == null) s3.deleteSchm(delName); else s3.deleteSchm(delName, delGroup);
                         plugin.refreshSchematicCacheAsync();
-                        sendMM(sender, prefix() + " <yellow>Deleted schematic </yellow><aqua>" + name + "</aqua>");
+                        sendMM(sender, prefix() + " <yellow>Deleted schematic </yellow><aqua>" + ((delGroup != null) ? delGroup + ":" : "") + delName + "</aqua>");
                     } catch (Exception e) {
                         sendMM(sender, prefix() + " <red>Delete failed:</red> <grey>" + e.getMessage() + "</grey>");
                     }
@@ -249,17 +267,19 @@ public class SchemFlowCommand implements CommandExecutor {
         String cmdName = "SchemFlow";
         String cmd = "/" + cmdName;
         var mm = com.c4g7.schemflow.SchemFlowPlugin.getInstance().getMiniMessage();
-        String msg = "<dark_grey>--- <gradient:#ff77e9:#ff4fd8:#ff77e9>SchemFlow</gradient> <grey>Commands:</grey> ---</dark_grey>\n\n" +
-                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " list</gradient> <dark_grey>-</dark_grey> List schematics</grey>\n" +
-                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " fetch</gradient> <white><i>name</i></white> <white><i>[destDir]</i></white> <dark_grey>-</dark_grey> Download schematic</grey>\n" +
-                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " pos1</gradient> <dark_grey>-</dark_grey> Set first position</grey>\n" +
-                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " pos2</gradient> <dark_grey>-</dark_grey> Set second position</grey>\n" +
-                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " upload</gradient> <white><i>id</i></white> <dark_grey>-</dark_grey> Export selection and upload</grey>\n" +
-                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " paste</gradient> <white><i>name</i></white> <dark_grey>-</dark_grey> Fetch and paste at location</grey>\n" +
-                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " delete</gradient> <white><i>name</i></white> <dark_grey>-</dark_grey> Delete schematic from storage</grey>\n" +
-                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " cache</gradient> <dark_grey>-</dark_grey> Refresh schematic name cache now</grey>\n" +
-                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " reload</gradient> <dark_grey>-</dark_grey> Reload config and services</grey>\n" +
-                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " provision</gradient> <white><i>world</i></white> <dark_grey>-</dark_grey> Create/load and paste base</grey>";
+    String msg = "<dark_grey>--- <gradient:#ff77e9:#ff4fd8:#ff77e9>SchemFlow</gradient> <grey>Commands:</grey> ---</dark_grey>\n\n" +
+        "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " list</gradient> <dark_grey>-</dark_grey> List schematics grouped by group</grey>\n" +
+        "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " fetch</gradient> <white><i>[group:]name</i></white> <white><i>[destDir]</i></white> <dark_grey>-</dark_grey> Download schematic</grey>\n" +
+        "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " pos1</gradient> <dark_grey>-</dark_grey> Set first position</grey>\n" +
+        "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " pos2</gradient> <dark_grey>-</dark_grey> Set second position</grey>\n" +
+        "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " upload</gradient> <white><i>id</i></white> <dark_grey>-</dark_grey> Export selection and upload</grey>\n" +
+        "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " paste</gradient> <white><i>[group:]name</i></white> <dark_grey>-</dark_grey> Fetch and paste at location</grey>\n" +
+        "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " delete</gradient> <white><i>[group:]name</i></white> <dark_grey>-</dark_grey> Delete schematic from storage</grey>\n" +
+        "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " cache</gradient> <dark_grey>-</dark_grey> Refresh schematic name cache (all groups)</grey>\n" +
+        "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " reload</gradient> <dark_grey>-</dark_grey> Reload config and services</grey>\n" +
+                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " provision</gradient> <white><i>world</i></white> <dark_grey>-</dark_grey> Create/load and paste base</grey>\n" +
+                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " groups</gradient> <dark_grey>-</dark_grey> List all groups</grey>\n" +
+                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " group create</gradient> <white><i>name</i></white> <dark_grey>-</dark_grey> Create group path</grey>";
         var adv = com.c4g7.schemflow.SchemFlowPlugin.getInstance().getAudiences();
         if (adv != null) adv.sender(sender).sendMessage(mm.deserialize(msg));
         else sender.sendMessage(mm.deserialize(msg));
@@ -308,5 +328,37 @@ public class SchemFlowCommand implements CommandExecutor {
             }
         }
         return null;
+    }
+
+    private static class CacheStats { int total; int groupCount; }
+
+    private CacheStats refreshCacheAllGroups() throws Exception {
+        CacheStats cs = new CacheStats();
+        var s3 = plugin.getS3Service();
+        java.util.List<String> groups = s3.listGroups();
+        java.util.List<String> all = new java.util.ArrayList<>();
+        // default first
+        java.util.List<String> def = s3.listSchm();
+        all.addAll(def);
+        cs.total += def.size();
+        cs.groupCount = def.isEmpty() ? 0 : 1;
+        for (String g : groups) {
+            java.util.List<String> li = s3.listSchm(g);
+            if (!li.isEmpty()) cs.groupCount++;
+            // Add both plain and group-prefixed variants for discoverability
+            all.addAll(li);
+            all.addAll(prefixAll(g, li));
+            cs.total += li.size();
+        }
+        // Store unprefixed names for backwards compatibility in cache for tabcomplete base matching
+        plugin.getSchematicCache().clear();
+        plugin.getSchematicCache().addAll(all);
+        return cs;
+    }
+
+    private java.util.List<String> prefixAll(String group, java.util.List<String> names) {
+        java.util.List<String> out = new java.util.ArrayList<>(names.size());
+        for (String n : names) out.add(group + ":" + (n.endsWith(".schm") ? n.substring(0, n.length() - 5) : n));
+        return out;
     }
 }

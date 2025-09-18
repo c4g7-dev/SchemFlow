@@ -28,9 +28,17 @@ public class SchemFlowPlugin extends JavaPlugin {
     public void refreshSchematicCacheAsync() {
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
             try {
-                java.util.List<String> list = s3Service.listSchm();
+                java.util.List<String> groups = s3Service.listGroups();
+                java.util.List<String> all = new java.util.ArrayList<>();
+                all.addAll(s3Service.listSchm()); // default group
+                for (String g : groups) {
+                    java.util.List<String> li = s3Service.listSchm(g);
+                    all.addAll(li);
+                    // Add prefixed variants for discovery in tabcomplete
+                    for (String n : li) all.add(g + ":" + (n.endsWith(".schm") ? n.substring(0, n.length() - 5) : n));
+                }
                 schemCache.clear();
-                for (String n : list) schemCache.add(n);
+                schemCache.addAll(all);
             } catch (Exception ignored) {}
         });
     }
@@ -53,6 +61,7 @@ public class SchemFlowPlugin extends JavaPlugin {
                 try { this.s3Service.close(); } catch (Exception ignore) {}
             }
             this.s3Service = newService;
+            try { this.s3Service.createRoot(); } catch (Exception ignore) {}
 
             if (cacheTaskId != -1) {
                 getServer().getScheduler().cancelTask(cacheTaskId);
@@ -121,6 +130,7 @@ public class SchemFlowPlugin extends JavaPlugin {
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
+        try { s3Service.createRoot(); } catch (Exception ignore) {}
 
         provisioner = new WorldProvisioner(this);
         int refreshSec = getConfig().getInt("cacheRefreshSeconds", 60);
@@ -143,10 +153,16 @@ public class SchemFlowPlugin extends JavaPlugin {
 
         if (cfg.getBoolean("autoListOnStart", true)) {
             try {
-                java.util.List<String> list = s3Service.listSchm();
+                java.util.List<String> groups = s3Service.listGroups();
+                java.util.List<String> all = new java.util.ArrayList<>();
+                all.addAll(s3Service.listSchm());
+                for (String g : groups) {
+                    java.util.List<String> li = s3Service.listSchm(g);
+                    all.addAll(li);
+                }
                 schemCache.clear();
-                schemCache.addAll(list);
-                getLogger().info("[SchemFlow] Found " + list.size() + " .schm objects in bucket");
+                schemCache.addAll(all);
+                getLogger().info("[SchemFlow] Found " + all.size() + " .schm objects across " + (groups.size() + 1) + " groups");
             } catch (Exception ex) {
                 getLogger().log(Level.WARNING, "List on start failed", ex);
             }

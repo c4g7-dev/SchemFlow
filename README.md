@@ -150,10 +150,10 @@ Test: `/SchemFlow list`
 ### Schematic Operations
 | Command | Description | Example |
 |---------|-------------|---------|
-| `/SchemFlow fetch <name> [-group <name>]` | Download schematic to disk | `/SchemFlow fetch castle -group lobby` |
+| `/SchemFlow fetch [group:]name [destDir]` | Download schematic to disk | `/SchemFlow fetch lobby:castle` |
 | `/SchemFlow upload <id> [-flags] [-group <name>]` | Upload selection as schematic | `/SchemFlow upload castle -eb -group lobby` |
-| `/SchemFlow paste <name> [-flags] [-group <name>]` | Paste schematic at location | `/SchemFlow paste castle -ea -group lobby` |
-| `/SchemFlow delete <name>` | Remove schematic from storage | `/SchemFlow delete old_castle` |
+| `/SchemFlow paste [group:]name [-flags]` | Paste schematic at location | `/SchemFlow paste lobby:castle -ea` |
+| `/SchemFlow delete [group:]name` | Remove schematic from storage | `/SchemFlow delete lobby:old_castle` |
 
 ### Selection Tools
 | Command | Description |
@@ -303,7 +303,7 @@ cd SchemFlow
 mvn clean package
 ```
 
-**Output**: `target/SchemFlow-0.5.7-all.jar`
+**Output**: `target/SchemFlow-0.5.8-all.jar`
 
 ### **Development Setup**
 - **IDE**: Visual Studio Code (recommended) with Maven support
