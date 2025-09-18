@@ -1,4 +1,4 @@
-# 🌊 SchemFlow
+# 🌊 SchemFlow - BETA
 
 <div align="center">
 
