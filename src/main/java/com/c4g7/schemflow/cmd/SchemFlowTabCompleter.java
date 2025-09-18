@@ -10,7 +10,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class SchemFlowTabCompleter implements TabCompleter {
-    private static final List<String> ROOT = Arrays.asList("help", "list", "fetch", "pos1", "pos2", "upload", "paste", "delete", "cache", "reload", "provision");
+    private static final List<String> ROOT = Arrays.asList("help", "list", "fetch", "pos1", "pos2", "upload", "paste", "delete", "cache", "reload", "provision", "groups", "group");
     private static final List<String> FLAG_COMBOS = Arrays.asList("-e", "-a", "-b", "-ea", "-eb", "-ab", "-eab");
 
     @Override
@@ -33,6 +33,8 @@ public class SchemFlowTabCompleter implements TabCompleter {
                     case "cache" -> sender.hasPermission("schemflow.cache") || sender.hasPermission("schemflow.admin");
                     case "reload" -> sender.hasPermission("schemflow.reload") || sender.hasPermission("schemflow.admin");
                     case "provision" -> sender.hasPermission("schemflow.provision") || sender.hasPermission("schemflow.admin");
+                    case "groups" -> sender.hasPermission("schemflow.groups") || sender.hasPermission("schemflow.admin");
+                    case "group" -> sender.hasPermission("schemflow.group.create") || sender.hasPermission("schemflow.admin");
                     default -> false;
                 }) out.add(s);
             }
@@ -62,6 +64,22 @@ public class SchemFlowTabCompleter implements TabCompleter {
             String p = args[2].toLowerCase();
             List<String> out = new ArrayList<>();
             for (String s : FLAG_COMBOS) if (s.startsWith(p)) out.add(s);
+            if ("-group".startsWith(p)) out.add("-group");
+            return out;
+        }
+        if (args.length == 4 && ("upload".equalsIgnoreCase(args[0]) || "paste".equalsIgnoreCase(args[0]) || "fetch".equalsIgnoreCase(args[0]))) {
+            if (!"-group".equalsIgnoreCase(args[2])) return Collections.emptyList();
+            String p = args[3].toLowerCase();
+            List<String> out = new ArrayList<>();
+            try {
+                java.util.List<String> groups = com.c4g7.schemflow.SchemFlowPlugin.getInstance().getS3Service().listGroups();
+                for (String g : groups) if (g.toLowerCase().startsWith(p)) out.add(g);
+            } catch (Exception ignored) {}
+            return out;
+        }
+        if (args.length == 2 && "group".equalsIgnoreCase(args[0])) {
+            List<String> out = new ArrayList<>();
+            if ("create".startsWith(args[1].toLowerCase())) out.add("create");
             return out;
         }
         return Collections.emptyList();

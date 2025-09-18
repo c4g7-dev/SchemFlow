@@ -11,7 +11,7 @@ softdepend:
 commands:
   'SchemFlow':
     description: SchemFlow primary command
-    usage: "/SchemFlow <help|list|fetch|pos1|pos2|upload|paste|delete|cache|reload|provision>"
+    usage: "/SchemFlow <help|list|fetch|pos1|pos2|upload|paste|delete|cache|reload|provision|groups|group>"
     aliases: [schem]
 permissions:
   schemflow.admin:
@@ -50,3 +50,9 @@ permissions:
   schemflow.provision:
     default: op
     description: Provision world base
+  schemflow.groups:
+    default: op
+    description: List groups
+  schemflow.group.create:
+    default: op
+    description: Create a new group

@@ -70,8 +70,9 @@ public class SchemFlowCommand implements CommandExecutor {
             }
             case "list" -> plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                 if (!sender.hasPermission("schemflow.list") && !sender.hasPermission("schemflow.admin")) { sendMM(sender, prefix() + " <red>No permission.</red>"); return; }
+                String group = getGroupFlag(args);
                 try {
-                    List<String> names = s3.listSchm();
+                    List<String> names = (group == null) ? s3.listSchm() : s3.listSchm(group);
                     if (names == null || names.isEmpty()) {
                         sendMM(sender, prefix() + " <grey>No schematics found.</grey>");
                     } else {
@@ -86,14 +87,15 @@ public class SchemFlowCommand implements CommandExecutor {
             case "fetch" -> {
                 if (!check(sender, "schemflow.fetch")) return true;
                 if (args.length < 2) {
-                    sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow fetch</gradient> <white><i>name</i></white> <white><i>[destDir]</i></white>");
+                    sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow fetch</gradient> <white><i>name</i></white> <white><i>[destDir]</i></white> <grey>[-group <i>name</i>]</grey>");
                     return true;
                 }
                 String name = args[1];
                 String dest = args.length >= 3 ? args[2] : plugin.getConfig().getString("downloadDir", "plugins/Skript/schematics");
+                String group = getGroupFlag(args);
                 plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                     try {
-                        Path p = s3.fetchSchm(name, dest);
+                        Path p = (group == null) ? s3.fetchSchm(name, dest) : s3.fetchSchm(name, group, dest);
                         sendMM(sender, prefix() + " <green>Downloaded to </green><aqua>" + p + "</aqua>");
                     } catch (Exception e) {
                         sendMM(sender, prefix() + " <red>Fetch failed:</red> <grey>" + e.getMessage() + "</grey>");
@@ -115,10 +117,11 @@ public class SchemFlowCommand implements CommandExecutor {
             case "upload" -> {
                 if (!check(sender, "schemflow.upload")) return true;
                 if (!(sender instanceof Player p)) { sendMM(sender, prefix() + " <red>Player only.</red>"); return true; }
-                if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow upload</gradient> <white><i>id</i></white> <white><i>[-flags]</i></white>"); return true; }
+                if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow upload</gradient> <white><i>id</i></white> <white><i>[-flags]</i></white> <grey>[-group <i>name</i>]</grey>"); return true; }
                 if (!plugin.getSelection().hasBoth(p.getUniqueId())) { sendMM(sender, prefix() + " <red>Set pos1 and pos2 first.</red>"); return true; }
                 String id = args[1];
                 final com.c4g7.schemflow.we.WeFlags weFlags = (args.length >= 3 && args[2].startsWith("-")) ? com.c4g7.schemflow.we.WeFlags.parse(args[2]) : null;
+                String group = getGroupFlag(args);
                 Location a = plugin.getSelection().getPos1(p.getUniqueId());
                 Location b = plugin.getSelection().getPos2(p.getUniqueId());
                 try {
@@ -131,7 +134,7 @@ public class SchemFlowCommand implements CommandExecutor {
                         Path schm = sessionDir.resolve(id + ".schm");
                         try {
                             zipSingle(schem, schm);
-                            s3.uploadSchm(schm, id);
+                            if (group == null) s3.uploadSchm(schm, id); else s3.uploadSchm(schm, id, group);
                             sendMM(sender, prefix() + " <green>Uploaded schematic </green><aqua>" + id + ".schm</aqua>");
                             plugin.refreshSchematicCacheAsync();
                         } catch (Exception ex) {
@@ -147,13 +150,14 @@ public class SchemFlowCommand implements CommandExecutor {
             case "paste" -> {
                 if (!check(sender, "schemflow.paste")) return true;
                 if (!(sender instanceof Player p)) { sendMM(sender, prefix() + " <red>Player only.</red>"); return true; }
-                if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow paste</gradient> <white><i>name</i></white> <white><i>[-flags]</i></white>"); return true; }
+                if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow paste</gradient> <white><i>name</i></white> <white><i>[-flags]</i></white> <grey>[-group <i>name</i>]</grey>"); return true; }
                 String name = args[1];
                 final com.c4g7.schemflow.we.WeFlags weFlags = (args.length >= 3 && args[2].startsWith("-")) ? com.c4g7.schemflow.we.WeFlags.parse(args[2]) : null;
                 String dest = plugin.getConfig().getString("downloadDir", "plugins/Skript/schematics");
+                String group = getGroupFlag(args);
                 plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                     try {
-                        Path schm = s3.fetchSchm(name, dest);
+                        Path schm = (group == null) ? s3.fetchSchm(name, dest) : s3.fetchSchm(name, group, dest);
                         if (com.c4g7.schemflow.util.ZipUtils.isZip(schm)) {
                             Path outDir = schm.getParent().resolve(name);
                             com.c4g7.schemflow.util.SafeIO.ensureDir(outDir);
@@ -188,15 +192,46 @@ public class SchemFlowCommand implements CommandExecutor {
                 if (!check(sender, "schemflow.delete")) return true;
                 if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow delete</gradient> <white><i>name</i></white>"); return true; }
                 String name = args[1];
+                String group = getGroupFlag(args);
                 plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                     try {
-                        s3.deleteSchm(name);
+                        if (group == null) s3.deleteSchm(name); else s3.deleteSchm(name, group);
                         plugin.refreshSchematicCacheAsync();
                         sendMM(sender, prefix() + " <yellow>Deleted schematic </yellow><aqua>" + name + "</aqua>");
                     } catch (Exception e) {
                         sendMM(sender, prefix() + " <red>Delete failed:</red> <grey>" + e.getMessage() + "</grey>");
                     }
                 });
+            }
+            case "groups" -> {
+                if (!check(sender, "schemflow.groups")) return true;
+                plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                    try {
+                        java.util.List<String> groups = s3.listGroups();
+                        if (groups.isEmpty()) sendMM(sender, prefix() + " <grey>No groups found.</grey>");
+                        else sendMM(sender, prefix() + " <grey>Groups:</grey> <aqua>" + String.join(", ", groups) + "</aqua>");
+                    } catch (Exception ex) {
+                        sendMM(sender, prefix() + " <red>Failed to list groups:</red> <grey>" + ex.getMessage() + "</grey>");
+                    }
+                });
+            }
+            case "group" -> {
+                if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow group create</gradient> <white><i>name</i></white>"); return true; }
+                if ("create".equalsIgnoreCase(args[1])) {
+                    if (!check(sender, "schemflow.group.create")) return true;
+                    if (args.length < 3) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow group create</gradient> <white><i>name</i></white>"); return true; }
+                    String grp = args[2];
+                    plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                        try {
+                            s3.createGroup(grp);
+                            sendMM(sender, prefix() + " <green>Created group </green><aqua>" + grp + "</aqua>");
+                        } catch (Exception ex) {
+                            sendMM(sender, prefix() + " <red>Failed to create group:</red> <grey>" + ex.getMessage() + "</grey>");
+                        }
+                    });
+                } else {
+                    sendMM(sender, prefix() + " <grey>Unknown group subcommand.</grey>");
+                }
             }
             case "provision" -> {
                 if (!check(sender, "schemflow.provision")) return true;
@@ -264,5 +299,14 @@ public class SchemFlowCommand implements CommandExecutor {
         if (sender.hasPermission("schemflow.admin") || sender.hasPermission(node)) return true;
         sendMM(sender, prefix() + " <red>No permission.</red>");
         return false;
+    }
+
+    private String getGroupFlag(String[] args) {
+        for (int i = 0; i < args.length - 1; i++) {
+            if ("-group".equalsIgnoreCase(args[i])) {
+                return args[i + 1];
+            }
+        }
+        return null;
     }
 }

@@ -93,6 +93,8 @@ public class SchemFlowPlugin extends JavaPlugin {
             if (!c.contains("fetchOnStart")) { c.set("fetchOnStart", ""); updated = true; }
             if (!c.contains("cacheRefreshSeconds")) { c.set("cacheRefreshSeconds", 60); updated = true; }
             if (!c.contains("provisionOnStartup")) { c.set("provisionOnStartup", false); updated = true; }
+            if (!c.contains("storage.rootDir")) { c.set("storage.rootDir", "FlowSuite/SchemFlow"); updated = true; }
+            if (!c.contains("storage.defaultGroup")) { c.set("storage.defaultGroup", "default"); updated = true; }
             if (updated) saveConfig();
         } catch (Throwable ignored) {}
         this.audiences = net.kyori.adventure.platform.bukkit.BukkitAudiences.create(this);
@@ -110,7 +112,9 @@ public class SchemFlowPlugin extends JavaPlugin {
                 cfg.getString("secretKey"),
                 cfg.getString("bucket"),
                 cfg.getBoolean("secure", true),
-                cfg.getString("extension", "schm")
+                cfg.getString("extension", "schm"),
+                cfg.getString("storage.rootDir", "FlowSuite/SchemFlow"),
+                cfg.getString("storage.defaultGroup", "default")
             );
         } catch (Exception e) {
             getLogger().log(Level.SEVERE, "Failed to init MinIO S3 service", e);
