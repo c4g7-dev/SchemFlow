@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.11-2 - 2025-09-19
+### Fixed
+- CI fallback: removed direct dependency on `getEphemeralCacheDir()` in `SchemFlowCommand` (now derives path locally) to avoid build mismatch with older tag snapshots.
+
 ## 0.5.11 - 2025-09-19
 ### Added
 - Group management: `/SchemFlow group delete <name> [--confirm]` (with pre-confirmation schematic count)

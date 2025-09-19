@@ -169,7 +169,8 @@ public class SchemFlowCommand implements CommandExecutor {
                 if (colon > 0) { tmpGroup = tmpName.substring(0, colon); tmpName = tmpName.substring(colon + 1); }
                 final com.c4g7.schemflow.we.WeFlags weFlags = (args.length >= 3 && args[2].startsWith("-")) ? com.c4g7.schemflow.we.WeFlags.parse(args[2]) : null;
                 // Use ephemeral cache for operational paste (not persistent download dir)
-                java.nio.file.Path eph = plugin.getEphemeralCacheDir();
+                java.nio.file.Path eph = plugin.getDataFolder().toPath().resolve("work").resolve("cache");
+                try { java.nio.file.Files.createDirectories(eph); } catch (Exception ignore) {}
                 final String name = tmpName;
                 final String group = tmpGroup;
                 plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
