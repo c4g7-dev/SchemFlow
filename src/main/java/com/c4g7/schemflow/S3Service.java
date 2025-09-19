@@ -1,7 +1,6 @@
 package com.c4g7.schemflow;
 
 import com.c4g7.schemflow.util.SafeIO;
-import com.c4g7.schemflow.util.ZipUtils;
 import io.minio.*;
 import io.minio.messages.Item;
 
@@ -22,7 +21,7 @@ public class S3Service implements AutoCloseable {
     private final String defaultGroup;
 
     public S3Service(String endpoint, String accessKey, String secretKey, String bucket, boolean secure, String extension) {
-    this(endpoint, accessKey, secretKey, bucket, secure, extension, "FlowStack/SchemFlow", "default");
+        this(endpoint, accessKey, secretKey, bucket, secure, extension, "FlowStack/SchemFlow", "default");
     }
 
     public S3Service(String endpoint, String accessKey, String secretKey, String bucket, boolean secure, String extension, String rootDir, String defaultGroup) {
@@ -30,7 +29,15 @@ public class S3Service implements AutoCloseable {
             throw new IllegalArgumentException("Missing S3 config values");
         }
         this.bucket = bucket;
-        this.extension = extension != null && !extension.isBlank() ? (extension.startsWith(".") ? extension : "." + extension) : ".schm";
+        // Allow configurable WorldEdit-compatible extensions (.schem or .schematic); default to .schem
+        String ext = extension;
+        if (ext == null || ext.isBlank()) ext = ".schem";
+        if (!ext.startsWith(".")) ext = "." + ext;
+        ext = ext.toLowerCase();
+        if (!ext.equals(".schem") && !ext.equals(".schematic")) {
+            ext = ".schem"; // fallback safeguard
+        }
+        this.extension = ext;
     this.rootDir = (rootDir == null || rootDir.isBlank()) ? "FlowStack/SchemFlow" : rootDir.replaceAll("^/+|/+$", "");
         this.defaultGroup = (defaultGroup == null || defaultGroup.isBlank()) ? "default" : defaultGroup;
         MinioClient.Builder builder = MinioClient.builder().credentials(accessKey, secretKey);
@@ -91,18 +98,7 @@ public class S3Service implements AutoCloseable {
         return out;
     }
 
-    public Path fetchAndExtractSchm(String name, String destDir) throws Exception { return fetchAndExtractSchm(name, defaultGroup, destDir); }
-
-    public Path fetchAndExtractSchm(String name, String group, String destDir) throws Exception {
-        Path path = fetchSchm(name, group, destDir);
-        if (ZipUtils.isZip(path)) {
-            Path extractDir = path.getParent().resolve(path.getFileName().toString().replaceFirst("\\.schm$", ""));
-            SafeIO.ensureDir(extractDir);
-            ZipUtils.unzip(path, extractDir);
-            return extractDir;
-        }
-        return path;
-    }
+    // Legacy bundle extraction removed: only raw .schem supported
 
     public void uploadSchm(Path file, String objectName) throws Exception { uploadSchm(file, objectName, defaultGroup); }
 
@@ -196,6 +192,57 @@ public class S3Service implements AutoCloseable {
         }
     }
 
+    public void deleteGroup(String group) throws Exception {
+        if (group == null || group.isBlank()) throw new IllegalArgumentException("Group required");
+        if (group.equalsIgnoreCase(defaultGroup)) throw new IllegalArgumentException("Cannot delete default group");
+        ensureValidGroup(group);
+        String prefix = rootDir + "/" + groupPrefix + group + "/";
+        Iterable<Result<Item>> results = client.listObjects(ListObjectsArgs.builder().bucket(bucket).recursive(true).prefix(prefix).build());
+        java.util.List<String> keys = new java.util.ArrayList<>();
+        for (Result<Item> r : results) {
+            Item it = r.get();
+            keys.add(it.objectName());
+        }
+        for (String k : keys) {
+            client.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(k).build());
+        }
+    }
+
+    public void renameGroup(String oldGroup, String newGroup) throws Exception {
+        if (oldGroup == null || oldGroup.isBlank() || newGroup == null || newGroup.isBlank()) throw new IllegalArgumentException("Both old and new group required");
+        ensureValidGroup(oldGroup);
+        ensureValidGroup(newGroup);
+        if (oldGroup.equalsIgnoreCase(newGroup)) throw new IllegalArgumentException("Groups are identical");
+        if (oldGroup.equalsIgnoreCase(defaultGroup)) throw new IllegalArgumentException("Cannot rename default group");
+        // Ensure new group doesn't already exist (simple heuristic: any object with its prefix)
+        String newPrefix = rootDir + "/" + groupPrefix + newGroup + "/";
+        Iterable<Result<Item>> newRes = client.listObjects(ListObjectsArgs.builder().bucket(bucket).recursive(true).prefix(newPrefix).build());
+        if (newRes.iterator().hasNext()) throw new IllegalStateException("Target group already exists");
+
+        String oldPrefix = rootDir + "/" + groupPrefix + oldGroup + "/";
+        Iterable<Result<Item>> results = client.listObjects(ListObjectsArgs.builder().bucket(bucket).recursive(true).prefix(oldPrefix).build());
+        java.util.List<String> toRemove = new java.util.ArrayList<>();
+        java.util.List<String> toCopy = new java.util.ArrayList<>();
+        for (Result<Item> r : results) {
+            Item it = r.get();
+            String key = it.objectName();
+            toRemove.add(key);
+            toCopy.add(key);
+        }
+        // Copy each object to new prefix
+        for (String src : toCopy) {
+            String suffix = src.substring(oldPrefix.length());
+            String dst = newPrefix + suffix;
+            client.copyObject(CopyObjectArgs.builder().bucket(bucket).object(dst).source(CopySource.builder().bucket(bucket).object(src).build()).build());
+        }
+        // Remove old objects
+        for (String k : toRemove) {
+            client.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(k).build());
+        }
+        // Create .keep in new group if empty or not present
+        createGroup(newGroup);
+    }
+
     public void createRoot() throws Exception {
         String key = rootDir + "/.keep";
         byte[] empty = new byte[0];
@@ -237,10 +284,7 @@ public class S3Service implements AutoCloseable {
 
     private String resolveObjectKeyForRead(String fileName, String group) {
         String primary = buildObjectKey(fileName, group);
-        if (objectExists(primary)) return primary;
-        String legacy = buildLegacyObjectKey(fileName, group);
-        if (objectExists(legacy)) return legacy;
-        return primary; // Fall back; will trigger an error when accessed
+    return primary; // No legacy fallback; .schem only
     }
 
     private void ensureValidName(String name) {
@@ -346,4 +390,6 @@ public class S3Service implements AutoCloseable {
 
     @Override
     public void close() { }
+
+    public String getExtension() { return extension; }
 }
