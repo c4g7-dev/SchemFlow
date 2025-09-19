@@ -147,11 +147,15 @@ public class SchemFlowTabCompleter implements TabCompleter {
             String p = args[3].toLowerCase();
             List<String> out = new ArrayList<>();
             try {
-                // Extract group names from cached schematics instead of making S3 call
                 var plugin = com.c4g7.schemflow.SchemFlowPlugin.getInstance();
                 var cachedSchematics = plugin.getSchematicCache();
                 java.util.Set<String> groups = new java.util.HashSet<>();
                 
+                // Add the default group from config (for upload -group completion)
+                String defaultGroupName = plugin.getConfig().getString("storage.defaultGroup", "default");
+                groups.add(defaultGroupName);
+                
+                // Extract other group names from cached schematics
                 for (String cached : cachedSchematics) {
                     if (cached.contains(":")) {
                         String groupName = cached.substring(0, cached.indexOf(":"));
@@ -225,11 +229,15 @@ public class SchemFlowTabCompleter implements TabCompleter {
             List<String> out = new ArrayList<>();
             String p = args[2].toLowerCase();
             try {
-                // Extract group names from cached schematics instead of making S3 call
                 var plugin = com.c4g7.schemflow.SchemFlowPlugin.getInstance();
                 var cachedSchematics = plugin.getSchematicCache();
                 java.util.Set<String> groups = new java.util.HashSet<>();
                 
+                // Add the default group from config (for group operations)
+                String defaultGroupName = plugin.getConfig().getString("storage.defaultGroup", "default");
+                groups.add(defaultGroupName);
+                
+                // Extract other group names from cached schematics
                 for (String cached : cachedSchematics) {
                     if (cached.contains(":")) {
                         String groupName = cached.substring(0, cached.indexOf(":"));
