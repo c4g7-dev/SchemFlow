@@ -33,17 +33,28 @@ public class SchemFlowPlugin extends JavaPlugin {
             try {
                 java.util.List<String> groups = s3Service.listGroups();
                 java.util.List<String> all = new java.util.ArrayList<>();
-                all.addAll(s3Service.listSchm()); // default group
+                String ext = s3Service.getExtension();
+                String defaultGroupName = getConfig().getString("storage.defaultGroup", "default");
+                
+                // Add default group schematics (without prefix)
+                java.util.List<String> defaultSchems = s3Service.listSchm();
+                for (String n : defaultSchems) {
+                    String base = n.toLowerCase().endsWith(ext) ? n.substring(0, n.length() - ext.length()) : n;
+                    all.add(base);
+                }
+                
+                // Add non-default group schematics (with group: prefix)
                 for (String g : groups) {
+                    // Skip default group to avoid duplicates
+                    if (g.equalsIgnoreCase(defaultGroupName)) continue;
+                    
                     java.util.List<String> li = s3Service.listSchm(g);
-                    all.addAll(li);
-                    // Add prefixed variants for discovery in tabcomplete
-                    String ext = s3Service.getExtension();
                     for (String n : li) {
                         String base = n.toLowerCase().endsWith(ext) ? n.substring(0, n.length() - ext.length()) : n;
                         all.add(g + ":" + base);
                     }
                 }
+                
                 schemCache.clear();
                 schemCache.addAll(all);
             } catch (Exception ignored) {}
@@ -165,11 +176,28 @@ public class SchemFlowPlugin extends JavaPlugin {
             try {
                 java.util.List<String> groups = s3Service.listGroups();
                 java.util.List<String> all = new java.util.ArrayList<>();
-                all.addAll(s3Service.listSchm());
-                for (String g : groups) {
-                    java.util.List<String> li = s3Service.listSchm(g);
-                    all.addAll(li);
+                String ext = s3Service.getExtension();
+                String defaultGroupName = cfg.getString("storage.defaultGroup", "default");
+                
+                // Add default group schematics (without prefix)
+                java.util.List<String> defaultSchems = s3Service.listSchm();
+                for (String n : defaultSchems) {
+                    String base = n.toLowerCase().endsWith(ext) ? n.substring(0, n.length() - ext.length()) : n;
+                    all.add(base);
                 }
+                
+                // Add non-default group schematics (with group: prefix)
+                for (String g : groups) {
+                    // Skip default group to avoid duplicates
+                    if (g.equalsIgnoreCase(defaultGroupName)) continue;
+                    
+                    java.util.List<String> li = s3Service.listSchm(g);
+                    for (String n : li) {
+                        String base = n.toLowerCase().endsWith(ext) ? n.substring(0, n.length() - ext.length()) : n;
+                        all.add(g + ":" + base);
+                    }
+                }
+                
                 schemCache.clear();
                 schemCache.addAll(all);
                 // Count only groups that have at least one schematic (including default)

@@ -75,17 +75,28 @@ public class SchemFlowTabCompleter implements TabCompleter {
                     String ext = plugin.getS3Service().getExtension();
                     int extLen = ext.length();
                     
+                    java.util.Set<String> uniqueResults = new java.util.HashSet<>();
+                    
                     for (String cached : cachedSchematics) {
-                        String base;
+                        String processed;
+                        
                         if (cached.contains(":")) {
-                            // This is a group:name format - use as-is
-                            base = cached;
+                            // This is a group:name format - use as-is (already processed)
+                            processed = cached;
                         } else {
-                            // This is a plain schematic name - remove extension
-                            base = cached.toLowerCase().endsWith(ext) ? cached.substring(0, cached.length() - extLen) : cached;
+                            // This is a raw schematic name - remove extension if present
+                            processed = cached.toLowerCase().endsWith(ext) ? 
+                                       cached.substring(0, cached.length() - extLen) : cached;
                         }
-                        if (base.toLowerCase().startsWith(p)) out.add(base);
+                        
+                        // Add to results if it matches the prefix
+                        if (processed.toLowerCase().startsWith(p)) {
+                            uniqueResults.add(processed);
+                        }
                     }
+                    
+                    // Convert Set back to List for return
+                    out.addAll(uniqueResults);
                     
                     // Add local schematics for paste command
                     if (root.equals("paste")) {

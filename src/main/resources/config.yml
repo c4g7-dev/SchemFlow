@@ -20,7 +20,7 @@ autoListOnStart: true
 fetchOnStart: ""
 
 # Schematic cache auto-refresh interval (seconds). Set 0 to disable periodic refresh.
-cacheRefreshSeconds: 60
+cacheRefreshSeconds: 30
 
 # Provisioning (WDB replacement)
 provisionOnStartup: false

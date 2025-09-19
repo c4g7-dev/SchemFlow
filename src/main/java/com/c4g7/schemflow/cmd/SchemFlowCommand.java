@@ -643,33 +643,36 @@ public class SchemFlowCommand implements CommandExecutor {
         var s3 = plugin.getS3Service();
         java.util.List<String> groups = s3.listGroups();
         java.util.List<String> all = new java.util.ArrayList<>();
-        // default first
+        String ext = s3.getExtension();
+        String defaultGroupName = plugin.getConfig().getString("storage.defaultGroup", "default");
+        
+        // Add default group schematics (without prefix)
         java.util.List<String> def = s3.listSchm();
-        all.addAll(def);
         cs.total += def.size();
         cs.groupCount = def.isEmpty() ? 0 : 1;
+        for (String n : def) {
+            String base = n.toLowerCase().endsWith(ext) ? n.substring(0, n.length() - ext.length()) : n;
+            all.add(base);
+        }
+        
+        // Add non-default group schematics (with group: prefix)
         for (String g : groups) {
+            // Skip default group to avoid duplicates
+            if (g.equalsIgnoreCase(defaultGroupName)) continue;
+            
             java.util.List<String> li = s3.listSchm(g);
             if (!li.isEmpty()) cs.groupCount++;
-            // Add both plain and group-prefixed variants for discoverability
-            all.addAll(li);
-            all.addAll(prefixAll(g, li));
             cs.total += li.size();
+            for (String n : li) {
+                String base = n.toLowerCase().endsWith(ext) ? n.substring(0, n.length() - ext.length()) : n;
+                all.add(g + ":" + base);
+            }
         }
-        // Store unprefixed names for backwards compatibility in cache for tabcomplete base matching
+        
+        // Store consistent format in cache
         plugin.getSchematicCache().clear();
         plugin.getSchematicCache().addAll(all);
         return cs;
-    }
-
-    private java.util.List<String> prefixAll(String group, java.util.List<String> names) {
-        java.util.List<String> out = new java.util.ArrayList<>(names.size());
-        String ext = plugin.getS3Service().getExtension();
-        for (String n : names) {
-            String base = n.toLowerCase().endsWith(ext) ? n.substring(0, n.length() - ext.length()) : n;
-            out.add(group + ":" + base);
-        }
-        return out;
     }
 
     private boolean hasFlag(String[] args, String flag) {
