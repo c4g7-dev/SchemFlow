@@ -94,7 +94,7 @@ public class SchemFlowCommand implements CommandExecutor {
             case "fetch" -> {
                 if (!check(sender, "schemflow.fetch")) return true;
                 if (args.length < 2) {
-                    sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow fetch</gradient> <white><i>[group:]name</i> or <i>/:path/to/name(.schm)</i></white> <white><i>[destDir]</i></white>");
+                    sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow fetch</gradient> <white><i>[group:]name</i></white> <grey>or</grey> <white><i>/:path/to/name</i></white> <white><i>[destDir]</i></white>");
                     return true;
                 }
                 String tmp = args[1];
@@ -141,19 +141,18 @@ public class SchemFlowCommand implements CommandExecutor {
                     java.nio.file.Path workRoot = getPluginWorkDir();
                     java.nio.file.Path sessionDir = workRoot.resolve(id + "-" + System.nanoTime());
                     java.nio.file.Files.createDirectories(sessionDir);
-                    Path schem = sessionDir.resolve(id + ".schem");
+                    String ext = plugin.getS3Service().getExtension();
+                    Path schem = sessionDir.resolve(id + ext);
                     com.c4g7.schemflow.we.WorldEditUtils.exportCuboid(a, b, schem, weFlags);
                     plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-                        Path schm = sessionDir.resolve(id + ".schm");
                         try {
-                            zipSingle(schem, schm);
-                            if (group == null) s3.uploadSchm(schm, id); else s3.uploadSchm(schm, id, group);
-                            sendMM(sender, prefix() + " <green>Uploaded schematic </green><aqua>" + id + ".schm</aqua>");
+                            if (group == null) s3.uploadSchm(schem, id); else s3.uploadSchm(schem, id, group);
+                            sendMM(sender, prefix() + " <green>Uploaded schematic </green><aqua>" + id + ext + "</aqua>");
                             plugin.refreshSchematicCacheAsync();
                         } catch (Exception ex) {
                             sendMM(sender, prefix() + " <red>Upload failed:</red> <grey>" + ex.getMessage() + "</grey>");
                         } finally {
-                            try { java.nio.file.Files.deleteIfExists(schem); java.nio.file.Files.deleteIfExists(schm); java.nio.file.Files.delete(sessionDir); } catch (Exception ignore) {}
+                            try { java.nio.file.Files.deleteIfExists(schem); java.nio.file.Files.delete(sessionDir); } catch (Exception ignore) {}
                         }
                     });
                 } catch (Exception ex) {
@@ -169,43 +168,49 @@ public class SchemFlowCommand implements CommandExecutor {
                 int colon = tmpName.indexOf(':');
                 if (colon > 0) { tmpGroup = tmpName.substring(0, colon); tmpName = tmpName.substring(colon + 1); }
                 final com.c4g7.schemflow.we.WeFlags weFlags = (args.length >= 3 && args[2].startsWith("-")) ? com.c4g7.schemflow.we.WeFlags.parse(args[2]) : null;
-                String dest = plugin.getConfig().getString("downloadDir", "plugins/FlowStack/schematics");
+                // Use ephemeral cache for operational paste (not persistent download dir)
+                java.nio.file.Path eph = plugin.getEphemeralCacheDir();
                 final String name = tmpName;
                 final String group = tmpGroup;
                 plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                     try {
-                        Path schm = (group == null) ? s3.fetchSchm(name, dest) : s3.fetchSchm(name, group, dest);
-                        if (com.c4g7.schemflow.util.ZipUtils.isZip(schm)) {
-                            Path outDir = schm.getParent().resolve(name);
-                            com.c4g7.schemflow.util.SafeIO.ensureDir(outDir);
-                            com.c4g7.schemflow.util.ZipUtils.unzip(schm, outDir);
-                            try (java.util.stream.Stream<Path> st = java.nio.file.Files.walk(outDir)) {
-                                Path schem = st.filter(pth -> pth.toString().toLowerCase().endsWith(".schem")).findFirst().orElse(null);
-                                if (schem != null) {
-                                    org.bukkit.Location at = p.getLocation();
-                                    final Path schemFile = schem;
-                                    final com.c4g7.schemflow.we.WeFlags flagsFinal = weFlags;
-                                    plugin.getServer().getScheduler().runTask(plugin, () -> {
-                                        try {
-                                            boolean ents = flagsFinal != null && flagsFinal.entities;
-                                            boolean ignoreAir = flagsFinal != null && flagsFinal.ignoreAir;
-                                            boolean biomes = flagsFinal == null || flagsFinal.biomes;
-                                            com.c4g7.schemflow.we.WorldEditUtils.paste(at, schemFile, ents, ignoreAir, biomes);
-                                            if (p != null) {
-                                                plugin.getUndoManager().record(new com.c4g7.schemflow.util.UndoManager.Action(
-                                                        com.c4g7.schemflow.util.UndoManager.Action.Type.PASTE,
-                                                        p.getUniqueId(), group, name, at, schemFile
-                                                ));
-                                            }
-                                            sendMM(p, prefix() + " <green>Pasted schematic.</green>");
-                                        } catch (Exception ignored) {
-                                            sendMM(p, prefix() + " <red>Failed to paste schematic.</red>");
-                                        }
-                                    });
+                        Path schemFile = (group == null) ? s3.fetchSchm(name, eph.toString()) : s3.fetchSchm(name, group, eph.toString());
+                        org.bukkit.Location at = p.getLocation();
+                        final com.c4g7.schemflow.we.WeFlags flagsFinal = weFlags;
+                        plugin.getServer().getScheduler().runTask(plugin, () -> {
+                            try {
+                                boolean ents = flagsFinal != null && flagsFinal.entities;
+                                boolean ignoreAir = flagsFinal != null && flagsFinal.ignoreAir;
+                                boolean biomes = flagsFinal == null || flagsFinal.biomes;
+                                var we = com.sk89q.worldedit.WorldEdit.getInstance();
+                                var wePlayer = com.sk89q.worldedit.bukkit.BukkitAdapter.adapt(p);
+                                var local = we.getSessionManager().get(wePlayer);
+                                try (var edit = local.createEditSession(wePlayer)) {
+                                    edit.setReorderMode(com.sk89q.worldedit.EditSession.ReorderMode.MULTI_STAGE);
+                                    var format = com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats.findByFile(schemFile.toFile());
+                                    if (format == null) throw new IllegalStateException("Unknown schematic format: " + schemFile);
+                                    try (var reader = format.getReader(java.nio.file.Files.newInputStream(schemFile))) {
+                                        var clipboard = reader.read();
+                                        var op = new com.sk89q.worldedit.session.ClipboardHolder(clipboard)
+                                                .createPaste(edit)
+                                                .to(com.sk89q.worldedit.math.BlockVector3.at(at.getBlockX(), at.getBlockY(), at.getBlockZ()))
+                                                .ignoreAirBlocks(ignoreAir)
+                                                .copyEntities(ents)
+                                                .copyBiomes(biomes)
+                                                .build();
+                                        com.sk89q.worldedit.function.operation.Operations.complete(op);
+                                    }
+                                    // Ensure WorldEdit history captures this edit for //undo
+                                    local.remember(edit);
                                 }
+                                sendMM(p, prefix() + " <green>Pasted schematic.</green> <grey>Use</grey> <aqua>//undo</aqua> <grey>or</grey> <aqua>/SchemFlow undo</aqua> <grey>to revert.</grey>");
+                            } catch (Exception ex) {
+                                sendMM(p, prefix() + " <red>Paste failed:</red> <grey>" + ex.getMessage() + "</grey>");
+                            } finally {
+                                try { java.nio.file.Files.deleteIfExists(schemFile); } catch (Exception ignore) {}
                             }
-                        }
-                        sendMM(sender, prefix() + " <green>Downloaded schematic </green><aqua>" + ((group != null) ? group + ":" : "") + name + "</aqua>");
+                        });
+                        // No secondary cache message
                     } catch (Exception e) {
                         sendMM(sender, prefix() + " <red>Paste failed:</red> <grey>" + e.getMessage() + "</grey>");
                     }
@@ -269,46 +274,49 @@ public class SchemFlowCommand implements CommandExecutor {
                 }
             }
             case "undo" -> {
-                if (!(sender instanceof Player)) { sendMM(sender, prefix() + " <red>Player only.</red>"); return true; }
+                if (!(sender instanceof Player p)) { sendMM(sender, prefix() + " <red>Player only.</red>"); return true; }
+                // First handle delete undo if any SchemFlow action present
                 var act = plugin.getUndoManager().popUndo();
-                if (act == null) { sendMM(sender, prefix() + " <grey>Nothing to undo.</grey>"); return true; }
-                plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-                    try {
-                        if (act.type == com.c4g7.schemflow.util.UndoManager.Action.Type.PASTE) {
-                            // Re-paste air over region by reusing same schematic with ignoreAir=false to revert
-                            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                                try { com.c4g7.schemflow.we.WorldEditUtils.paste(act.at, act.schemFile, false, false, true); } catch (Exception ignored) {}
-                            });
-                        } else if (act.type == com.c4g7.schemflow.util.UndoManager.Action.Type.DELETE) {
-                            plugin.getS3Service().restoreSchm(act.name, act.group);
-                            plugin.refreshSchematicCacheAsync();
+                if (act != null) {
+                    plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                        try {
+                            if (act.type == com.c4g7.schemflow.util.UndoManager.Action.Type.DELETE) {
+                                plugin.getS3Service().restoreSchm(act.name, act.group);
+                                plugin.refreshSchematicCacheAsync();
+                            }
+                            plugin.getUndoManager().pushRedo(act);
+                            sendMM(sender, prefix() + " <green>Undo (delete) done.</green>");
+                        } catch (Exception ex) {
+                            sendMM(sender, prefix() + " <red>Undo failed:</red> <grey>" + ex.getMessage() + "</grey>");
                         }
-                        plugin.getUndoManager().pushRedo(act);
-                        sendMM(sender, prefix() + " <green>Undo done.</green>");
-                    } catch (Exception ex) {
-                        sendMM(sender, prefix() + " <red>Undo failed:</red> <grey>" + ex.getMessage() + "</grey>");
+                    });
+                } else {
+                    // Delegate directly; rely solely on WorldEdit output
+                    if (!p.performCommand("undo")) {
+                        p.performCommand("//undo");
                     }
-                });
+                }
             }
             case "redo" -> {
-                if (!(sender instanceof Player)) { sendMM(sender, prefix() + " <red>Player only.</red>"); return true; }
+                if (!(sender instanceof Player p)) { sendMM(sender, prefix() + " <red>Player only.</red>"); return true; }
                 var act = plugin.getUndoManager().popRedo();
-                if (act == null) { sendMM(sender, prefix() + " <grey>Nothing to redo.</grey>"); return true; }
-                plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-                    try {
-                        if (act.type == com.c4g7.schemflow.util.UndoManager.Action.Type.PASTE) {
-                            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                                try { com.c4g7.schemflow.we.WorldEditUtils.paste(act.at, act.schemFile, true, false, true); } catch (Exception ignored) {}
-                            });
-                        } else if (act.type == com.c4g7.schemflow.util.UndoManager.Action.Type.DELETE) {
-                            if (act.group == null) plugin.getS3Service().trashSchm(act.name); else plugin.getS3Service().trashSchm(act.name, act.group);
-                            plugin.refreshSchematicCacheAsync();
+                if (act != null) {
+                    plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                        try {
+                            if (act.type == com.c4g7.schemflow.util.UndoManager.Action.Type.DELETE) {
+                                if (act.group == null) plugin.getS3Service().trashSchm(act.name); else plugin.getS3Service().trashSchm(act.name, act.group);
+                                plugin.refreshSchematicCacheAsync();
+                            }
+                            sendMM(sender, prefix() + " <green>Redo (delete) done.</green>");
+                        } catch (Exception ex) {
+                            sendMM(sender, prefix() + " <red>Redo failed:</red> <grey>" + ex.getMessage() + "</grey>");
                         }
-                        sendMM(sender, prefix() + " <green>Redo done.</green>");
-                    } catch (Exception ex) {
-                        sendMM(sender, prefix() + " <red>Redo failed:</red> <grey>" + ex.getMessage() + "</grey>");
+                    });
+                } else {
+                    if (!p.performCommand("redo")) {
+                        p.performCommand("//redo");
                     }
-                });
+                }
             }
             case "groups" -> {
                 if (!check(sender, "schemflow.groups")) return true;
@@ -381,15 +389,6 @@ public class SchemFlowCommand implements CommandExecutor {
         else sender.sendMessage(mm.deserialize("<dark_grey>------------------------------</dark_grey>"));
     }
 
-    private void zipSingle(Path input, Path zipOut) throws Exception {
-        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(java.nio.file.Files.newOutputStream(zipOut))) {
-            java.util.zip.ZipEntry e = new java.util.zip.ZipEntry(input.getFileName().toString());
-            zos.putNextEntry(e);
-            java.nio.file.Files.copy(input, zos);
-            zos.closeEntry();
-        }
-    }
-
     private java.nio.file.Path getPluginWorkDir() throws java.io.IOException {
         java.nio.file.Path work = plugin.getDataFolder().toPath().resolve("work");
         if (!java.nio.file.Files.exists(work)) {
@@ -452,7 +451,11 @@ public class SchemFlowCommand implements CommandExecutor {
 
     private java.util.List<String> prefixAll(String group, java.util.List<String> names) {
         java.util.List<String> out = new java.util.ArrayList<>(names.size());
-        for (String n : names) out.add(group + ":" + (n.endsWith(".schm") ? n.substring(0, n.length() - 5) : n));
+        String ext = plugin.getS3Service().getExtension();
+        for (String n : names) {
+            String base = n.toLowerCase().endsWith(ext) ? n.substring(0, n.length() - ext.length()) : n;
+            out.add(group + ":" + base);
+        }
         return out;
     }
 }
