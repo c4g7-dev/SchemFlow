@@ -185,6 +185,12 @@ public class S3Service implements AutoCloseable {
 
     public void createGroup(String group) throws Exception {
         String grp = (group == null || group.isBlank()) ? defaultGroup : group;
+        // Prevent duplicate (case-insensitive) creation
+        for (String existing : listGroups()) {
+            if (existing.equalsIgnoreCase(grp)) {
+                throw new IllegalStateException("Group already exists: " + grp);
+            }
+        }
         String key = rootDir + "/" + groupPrefix + grp + "/.keep";
         byte[] empty = new byte[0];
         try (InputStream in = new java.io.ByteArrayInputStream(empty)) {

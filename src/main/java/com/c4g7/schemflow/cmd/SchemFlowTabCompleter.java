@@ -10,7 +10,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class SchemFlowTabCompleter implements TabCompleter {
-    private static final List<String> ROOT = Arrays.asList("help", "list", "fetch", "pos1", "pos2", "upload", "paste", "delete", "restore", "undo", "redo", "cache", "reload", "provision", "groups", "group");
+    private static final List<String> ROOT = Arrays.asList("help", "list", "fetch", "pos1", "pos2", "upload", "paste", "delete", "restore", "undo", "redo", "cache", "reload", "provision", "groups", "group", "trash");
     private static final List<String> FLAG_COMBOS = Arrays.asList("-e", "-a", "-b", "-ea", "-eb", "-ab", "-eab");
 
     @Override
@@ -38,6 +38,7 @@ public class SchemFlowTabCompleter implements TabCompleter {
                     case "provision" -> sender.hasPermission("schemflow.provision") || sender.hasPermission("schemflow.admin");
                     case "groups" -> sender.hasPermission("schemflow.groups") || sender.hasPermission("schemflow.admin");
                     case "group" -> sender.hasPermission("schemflow.group.create") || sender.hasPermission("schemflow.admin");
+                    case "trash" -> sender.hasPermission("schemflow.list") || sender.hasPermission("schemflow.trash.clear") || sender.hasPermission("schemflow.admin");
                     default -> false;
                 }) out.add(s);
             }

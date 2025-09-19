@@ -349,7 +349,14 @@ public class SchemFlowCommand implements CommandExecutor {
                         String grp = args[2];
                         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                             try { s3.createGroup(grp); sendMM(sender, prefix() + " <green>Created group </green><aqua>" + grp + "</aqua>"); }
-                            catch (Exception ex) { sendMM(sender, prefix() + " <red>Create failed:</red> <grey>" + ex.getMessage() + "</grey>"); }
+                            catch (Exception ex) {
+                                String msg = ex.getMessage();
+                                if (msg != null && msg.toLowerCase().contains("exists")) {
+                                    sendMM(sender, prefix() + " <yellow>Group already exists:</yellow> <aqua>" + grp + "</aqua>");
+                                } else {
+                                    sendMM(sender, prefix() + " <red>Create failed:</red> <grey>" + msg + "</grey>");
+                                }
+                            }
                         });
                     }
                     case "delete" -> {
