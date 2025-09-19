@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.5.11 - 2025-09-19
+### Added
+- Group management: `/SchemFlow group delete <name> [--confirm]` (with pre-confirmation schematic count)
+- Group renaming: `/SchemFlow group rename <old> <new>` (supports case-only renames)
+- Root tab completion extended: `undo`, `redo`, `restore`, `trash`, `group delete/rename` context, `restore -group`, `trash clear`
+- Confirmation previews: group delete & trash clear show counts before requiring `--confirm`
+
+### Changed
+- Paste now uses ephemeral disk cache at `work/cache` purged on enable/reload/disable (no persistent extraction)
+- `/SchemFlow undo` & `/SchemFlow redo` delegate directly to WorldEdit when no SchemFlow delete action is pending
+- Help text updated with confirm flags & group management details
+- Configurable schematic extension limited to `.schem` or `.schematic` (legacy `.schm` bundle support removed)
+
+### Fixed
+- Duplicate group creation now properly blocked (case-insensitive check)
+- Case-only group renames allowed (reject only exact identical)
+- Tab completion adjustments: `paste` flags (no `-group`), `restore -group`, trash root, group subcommands
+- Plugin.yml indentation & command key quoting issues resolved; usage updated for confirm flags
+
+### Removed
+- Legacy `.schm` bundle handling and related references (only raw WorldEdit formats now)
+
+### Documentation
+- README & Wiki updated: ephemeral cache, confirmation behavior, group delete/rename, extension constraints, removal of bundle wording
+
 ## 0.5.10-5 - 2025-09-18
 - Fixed: plugin.yml YAML indentation under `commands` causing Invalid plugin.yml on load
 

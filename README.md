@@ -23,17 +23,14 @@
 ## 🚀 Why Choose SchemFlow?
 
 **SchemFlow** revolutionizes schematic management for Minecraft servers by leveraging cloud-native S3/MinIO storage, delivering high performance and reliability. This open-source plugin eliminates the bottlenecks of traditional file-based workflows.
+**SchemFlow** revolutionizes schematic management for Minecraft servers by leveraging cloud-native S3/MinIO storage, delivering high performance and reliability. This open-source plugin eliminates the bottlenecks of traditional file-based workflows while keeping everything in native WorldEdit schematic formats (`.schem` / `.schematic`).
 
 ### ⚡ **Blazing Performance**
-- **10x faster** than traditional file storage solutions
-- **FastAsyncWorldEdit** optimized for maximum throughput
-- **Instant uploads** with efficient compression algorithms
+- **Instant uploads** (streamed directly to S3)
 - **Parallel operations** for bulk schematic management
 - **Lightweight caching** to minimize redundant requests
-
-### 🏗️ **Enterprise-Grade Architecture**
-- **S3/MinIO object storage** for unlimited scalability
-- **Multi-region capable** when your S3/MinIO provider is clustered (failover handled by storage)
+- **Native schematic storage** (`.schem` / `.schematic`)
+- **Ephemeral paste cache** (no lingering temp files)
 - **Versioning & backup** built into the storage layer
 - **Concurrent access** from multiple server instances
 - **Zero-downtime operations** with hot configuration reloading
@@ -50,23 +47,27 @@
 ## ✨ Feature Showcase
 
 <table>
-<tr>
+| `/SchemFlow trash clear --confirm` | Permanently clear ALL trashed schematics (shows count if missing --confirm) | `/SchemFlow trash clear --confirm` |
+| `/SchemFlow group delete <name> [--confirm]` | Delete a non-default group (preview count first) | `/SchemFlow group delete Nature --confirm` |
+| `/SchemFlow group rename <old> <new>` | Rename a non-default group (case-only allowed) | `/SchemFlow group rename nature Nature` |
 <td width="50%">
 
 ### 🎮 **In-Game Management**
+### Ephemeral Paste Cache
+Pastes use an ephemeral cache under `plugins/SchemFlow/work/cache/` which is purged on enable, reload, and disable. No persistent schematic files remain unless you explicitly run `/SchemFlow fetch`.
 - **One-click uploads** with `/SchemFlow upload`
 - **Instant pasting** at any location
-- **Smart selection tools** (`pos1` & `pos2`)
-- **Bulk operations** for mass management
+ - File naming: user-provided names are stored as-is (no schematic name prefix)
 - **Real-time cache updates**
 
 ### 🔧 **Advanced WorldEdit Support**
 - **FastAsyncWorldEdit** fully compatible
 - **Entity handling** with `-e` flag
 - **Air block control** with `-a` flag  
-- **Biome preservation** with `-b` flag
+- Deleted schematics move to a flat trash: `<rootDir>/.trash/<name>.<ext>`
 - **Large schematic optimization**
 
+`extension: "schem"`                   # Schematic extension (.schem or .schematic allowed)
 </td>
 <td width="50%">
 
@@ -81,6 +82,7 @@
 - **Skript integration** with custom syntax
 - **World provisioning** system
 - **Scheduled operations** support
+extension: "schem"                    # File extension for bundles
 - **Event-driven workflows**
 - **API extensibility**
 
@@ -159,6 +161,12 @@ Test: `/SchemFlow list`
 | `/SchemFlow restore <name> [-group <dest>]` | Restore a trashed schematic to group (default is config group) | `/SchemFlow restore old_castle -group lobby` |
 | `/SchemFlow trash` | List trashed schematics | `/SchemFlow trash` |
 | `/SchemFlow trash clear --confirm` | Permanently clear ALL trashed schematics | `/SchemFlow trash clear --confirm` |
+
+### Undo & Redo Behavior
+`/SchemFlow undo` / `/SchemFlow redo` first handle SchemFlow delete actions (trash ↔ restore). If no delete action is pending they delegate directly to WorldEdit’s native history (`//undo` / `//redo`) for pasted block changes.
+
+### Ephemeral Paste Cache
+Pastes use an ephemeral cache under `plugins/SchemFlow/work/cache/` which is purged on enable, reload, and disable. No persistent schematic files are left behind unless you explicitly run `/SchemFlow fetch` to download a file to the configured `downloadDir`.
 
 ### Selection Tools
 | Command | Description |
@@ -310,7 +318,7 @@ cd SchemFlow
 mvn clean package
 ```
 
-**Output**: `target/SchemFlow-0.5.10-5-all.jar`
+**Output**: `target/SchemFlow-0.5.11-all.jar`
 
 ### **Development Setup**
 - **IDE**: Visual Studio Code (recommended) with Maven support
