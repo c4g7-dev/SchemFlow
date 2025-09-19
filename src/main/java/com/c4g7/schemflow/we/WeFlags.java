@@ -4,6 +4,8 @@ public class WeFlags {
     public boolean entities;
     public boolean ignoreAir;
     public boolean biomes;
+    public boolean local;
+    public boolean update;
 
     public static WeFlags parse(String token) {
         WeFlags f = new WeFlags();
@@ -14,6 +16,8 @@ public class WeFlags {
                 case 'e' -> f.entities = true;
                 case 'a' -> f.ignoreAir = true;
                 case 'b' -> f.biomes = true;
+                case 'l' -> f.local = true;
+                case 'u' -> f.update = true;
                 default -> {}
             }
         }

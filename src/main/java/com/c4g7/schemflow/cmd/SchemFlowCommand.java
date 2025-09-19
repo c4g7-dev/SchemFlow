@@ -103,7 +103,7 @@ public class SchemFlowCommand implements CommandExecutor {
                 if (c > 0) { g = tmp.substring(0, c); tmp = tmp.substring(c + 1); }
                 final String name = tmp;
                 final String group = (g != null && !g.isBlank()) ? g : null;
-                String dest = args.length >= 3 ? args[2] : plugin.getConfig().getString("downloadDir", "plugins/FlowStack/schematics");
+                String dest = args.length >= 3 ? args[2] : plugin.getConfig().getString("downloadDir", "plugins/SchemFlow/schematics");
                 plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                     try {
                         Path p;
@@ -130,7 +130,7 @@ public class SchemFlowCommand implements CommandExecutor {
             case "upload" -> {
                 if (!check(sender, "schemflow.upload")) return true;
                 if (!(sender instanceof Player p)) { sendMM(sender, prefix() + " <red>Player only.</red>"); return true; }
-                if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow upload</gradient> <white><i>id</i></white> <white><i>[-flags]</i></white> <grey>[-group <i>name</i>]</grey>"); return true; }
+                if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow upload</gradient> <white><i>id</i></white> <white><i>[-flags] [-update]</i></white> <grey>[-group <i>name</i>] [--confirm]</grey>"); return true; }
                 if (!plugin.getSelection().hasBoth(p.getUniqueId())) { sendMM(sender, prefix() + " <red>Set pos1 and pos2 first.</red>"); return true; }
                 String id = args[1];
                 final com.c4g7.schemflow.we.WeFlags weFlags = (args.length >= 3 && args[2].startsWith("-")) ? com.c4g7.schemflow.we.WeFlags.parse(args[2]) : null;
@@ -162,20 +162,26 @@ public class SchemFlowCommand implements CommandExecutor {
             case "paste" -> {
                 if (!check(sender, "schemflow.paste")) return true;
                 if (!(sender instanceof Player p)) { sendMM(sender, prefix() + " <red>Player only.</red>"); return true; }
-                if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow paste</gradient> <white><i>[group:]name</i></white> <white><i>[-flags]</i></white>"); return true; }
+                if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow paste</gradient> <white><i>[group:]name</i></white> <white><i>[-flags] [-local]</i></white>"); return true; }
                 String tmpName = args[1];
                 String tmpGroup = null;
                 int colon = tmpName.indexOf(':');
                 if (colon > 0) { tmpGroup = tmpName.substring(0, colon); tmpName = tmpName.substring(colon + 1); }
                 final com.c4g7.schemflow.we.WeFlags weFlags = (args.length >= 3 && args[2].startsWith("-")) ? com.c4g7.schemflow.we.WeFlags.parse(args[2]) : null;
-                // Use ephemeral cache for operational paste (not persistent download dir)
-                java.nio.file.Path eph = plugin.getDataFolder().toPath().resolve("work").resolve("cache");
-                try { java.nio.file.Files.createDirectories(eph); } catch (Exception ignore) {}
+                // Use downloadDir if -local flag present, otherwise ephemeral cache
+                final String targetDir;
+                if (weFlags != null && weFlags.local) {
+                    targetDir = plugin.getConfig().getString("downloadDir", "plugins/SchemFlow/schematics");
+                } else {
+                    java.nio.file.Path eph = plugin.getDataFolder().toPath().resolve("work").resolve("cache");
+                    try { java.nio.file.Files.createDirectories(eph); } catch (Exception ignore) {}
+                    targetDir = eph.toString();
+                }
                 final String name = tmpName;
                 final String group = tmpGroup;
                 plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                     try {
-                        Path schemFile = (group == null) ? s3.fetchSchm(name, eph.toString()) : s3.fetchSchm(name, group, eph.toString());
+                        Path schemFile = (group == null) ? s3.fetchSchm(name, targetDir) : s3.fetchSchm(name, group, targetDir);
                         org.bukkit.Location at = p.getLocation();
                         final com.c4g7.schemflow.we.WeFlags flagsFinal = weFlags;
                         plugin.getServer().getScheduler().runTask(plugin, () -> {
@@ -208,7 +214,7 @@ public class SchemFlowCommand implements CommandExecutor {
                             } catch (Exception ex) {
                                 sendMM(p, prefix() + " <red>Paste failed:</red> <grey>" + ex.getMessage() + "</grey>");
                             } finally {
-                                try { java.nio.file.Files.deleteIfExists(schemFile); } catch (Exception ignore) {}
+                                // Only delete file if using ephemeral cache (not -local)\n                                if (weFlags == null || !weFlags.local) {\n                                    try { java.nio.file.Files.deleteIfExists(schemFile); } catch (Exception ignore) {}\n                                }
                             }
                         });
                         // No secondary cache message

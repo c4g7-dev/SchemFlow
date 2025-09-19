@@ -49,7 +49,7 @@ public class SkriptHook {
             org.bukkit.Location loc = at.getSingle(e);
             if (n == null || loc == null) return;
             S3Service s3 = SchemFlowPlugin.getInstance().getS3Service();
-            String dest = SchemFlowPlugin.getInstance().getConfig().getString("downloadDir", "plugins/FlowStack/schematics");
+            String dest = SchemFlowPlugin.getInstance().getConfig().getString("downloadDir", "plugins/SchemFlow/schematics");
             SchemFlowPlugin.getInstance().getServer().getScheduler().runTaskAsynchronously(SchemFlowPlugin.getInstance(), () -> {
                 try {
                     String group = null; String name = n;
@@ -112,7 +112,7 @@ public class SkriptHook {
 
     @Name("Fetch SchemFlow Schematic")
     @Description("Downloads a .schem file by name (optionally group:name) to an optional directory.")
-    @Examples({"fetch schemflow schematic \"map1\" to \"plugins/FlowStack/schematics\""})
+    @Examples({"fetch schemflow schematic \"map1\" to \"plugins/SchemFlow/schematics\""})
     @Since("0.1.0")
     public static class EffFetchSchematic extends Effect {
         private Expression<String> name;
@@ -127,7 +127,7 @@ public class SkriptHook {
         @Override
         protected void execute(Event e) {
             String n = name.getSingle(e);
-            String d = dir == null ? SchemFlowPlugin.getInstance().getConfig().getString("downloadDir", "plugins/FlowStack/schematics") : dir.getSingle(e);
+            String d = dir == null ? SchemFlowPlugin.getInstance().getConfig().getString("downloadDir", "plugins/SchemFlow/schematics") : dir.getSingle(e);
             if (n == null) return;
             S3Service s3 = SchemFlowPlugin.getInstance().getS3Service();
             SchemFlowPlugin.getInstance().getServer().getScheduler().runTaskAsynchronously(SchemFlowPlugin.getInstance(), () -> {

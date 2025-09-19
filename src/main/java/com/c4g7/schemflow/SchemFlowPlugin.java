@@ -187,7 +187,7 @@ public class SchemFlowPlugin extends JavaPlugin {
             final String name = autoFetch;
             getServer().getScheduler().runTaskAsynchronously(this, () -> {
                 try {
-                    s3Service.fetchSchm(name, cfg.getString("downloadDir", "plugins/FlowStack/schematics"));
+                    s3Service.fetchSchm(name, cfg.getString("downloadDir", "plugins/SchemFlow/schematics"));
                 } catch (Exception ex) {
                     getLogger().log(Level.SEVERE, "Fetch on start failed for " + name, ex);
                 }

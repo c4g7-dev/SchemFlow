@@ -11,7 +11,7 @@ import java.util.List;
 
 public class SchemFlowTabCompleter implements TabCompleter {
     private static final List<String> ROOT = Arrays.asList("help", "list", "fetch", "pos1", "pos2", "upload", "paste", "delete", "restore", "undo", "redo", "cache", "reload", "provision", "groups", "group", "trash");
-    private static final List<String> FLAG_COMBOS = Arrays.asList("-e", "-a", "-b", "-ea", "-eb", "-ab", "-eab");
+    private static final List<String> FLAG_COMBOS = Arrays.asList("-e", "-a", "-b", "-l", "-ea", "-eb", "-ab", "-el", "-al", "-bl", "-eab", "-eal", "-ebl", "-abl", "-eabl");
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
@@ -44,11 +44,12 @@ public class SchemFlowTabCompleter implements TabCompleter {
             }
             return out;
         }
-        if (args.length == 2 && ("paste".equalsIgnoreCase(args[0]) || "delete".equalsIgnoreCase(args[0]) || "restore".equalsIgnoreCase(args[0]))) {
+        if (args.length == 2 && ("paste".equalsIgnoreCase(args[0]) || "delete".equalsIgnoreCase(args[0]) || "restore".equalsIgnoreCase(args[0]) || "fetch".equalsIgnoreCase(args[0]))) {
             String root = args[0].toLowerCase();
             if ((root.equals("paste") && !(sender.hasPermission("schemflow.paste") || sender.hasPermission("schemflow.admin"))) ||
                 (root.equals("delete") && !(sender.hasPermission("schemflow.delete") || sender.hasPermission("schemflow.admin"))) ||
-                (root.equals("restore") && !(sender.hasPermission("schemflow.restore") || sender.hasPermission("schemflow.admin")))) {
+                (root.equals("restore") && !(sender.hasPermission("schemflow.restore") || sender.hasPermission("schemflow.admin"))) ||
+                (root.equals("fetch") && !(sender.hasPermission("schemflow.fetch") || sender.hasPermission("schemflow.admin")))) {
                 return Collections.emptyList();
             }
             String p = args[1].toLowerCase();
