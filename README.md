@@ -1,4 +1,3 @@
-````markdown
 # 🌊 SchemFlow
 
 <div align="center">
@@ -519,5 +518,3 @@ Made with ❤️ by c4g7-dev and the Minecraft community
 [⭐ Star us on GitHub](https://github.com/c4g7-dev/SchemFlow) • [🚀 Download v0.5.12](https://github.com/c4g7-dev/SchemFlow/releases/latest) • [💬 Join Discord](https://discord.gg/eNNbqS4N2H)
 
 </div>
-
-````
