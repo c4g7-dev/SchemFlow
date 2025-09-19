@@ -214,7 +214,10 @@ public class SchemFlowCommand implements CommandExecutor {
                             } catch (Exception ex) {
                                 sendMM(p, prefix() + " <red>Paste failed:</red> <grey>" + ex.getMessage() + "</grey>");
                             } finally {
-                                // Only delete file if using ephemeral cache (not -local)\n                                if (weFlags == null || !weFlags.local) {\n                                    try { java.nio.file.Files.deleteIfExists(schemFile); } catch (Exception ignore) {}\n                                }
+                                // Only delete file if using ephemeral cache (not -local)
+                                if (weFlags == null || !weFlags.local) {
+                                    try { java.nio.file.Files.deleteIfExists(schemFile); } catch (Exception ignore) {}
+                                }
                             }
                         });
                         // No secondary cache message

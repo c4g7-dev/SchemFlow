@@ -70,6 +70,8 @@ public class SchemFlowTabCompleter implements TabCompleter {
                         if (base.toLowerCase().startsWith(p)) out.add(base);
                     }
                     for (String g : s3.listGroups()) {
+                        // Skip default group to avoid duplicates (already listed above without group prefix)
+                        if (g.equalsIgnoreCase("default")) continue;
                         for (String n : s3.listSchm(g)) {
                             String base = n.toLowerCase().endsWith(ext) ? n.substring(0, n.length() - extLen) : n;
                             String pref = g + ":" + base;
