@@ -81,8 +81,8 @@ Pastes use an ephemeral cache under `plugins/SchemFlow/work/cache/` which is pur
 ### 🤖 **Automation & Scripting**
 - **Skript integration** with custom syntax
 - **World provisioning** system
-- **Scheduled operations** support
-extension: "schem"                    # File extension for bundles
+- **Scheduled operations** 
+- **Extension** "schem" File extension for bundles
 - **Event-driven workflows**
 - **API extensibility**
 

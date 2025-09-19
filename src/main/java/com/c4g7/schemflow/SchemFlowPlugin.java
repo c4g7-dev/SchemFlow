@@ -18,6 +18,7 @@ public class SchemFlowPlugin extends JavaPlugin {
     private java.util.concurrent.CopyOnWriteArrayList<String> schemCache = new java.util.concurrent.CopyOnWriteArrayList<>();
     private int cacheTaskId = -1;
     private com.c4g7.schemflow.util.UndoManager undoManager = new com.c4g7.schemflow.util.UndoManager();
+    private java.nio.file.Path ephemeralCacheDir;
 
     public static SchemFlowPlugin getInstance() { return instance; }
     public S3Service getS3Service() { return s3Service; }
@@ -37,7 +38,11 @@ public class SchemFlowPlugin extends JavaPlugin {
                     java.util.List<String> li = s3Service.listSchm(g);
                     all.addAll(li);
                     // Add prefixed variants for discovery in tabcomplete
-                    for (String n : li) all.add(g + ":" + (n.endsWith(".schm") ? n.substring(0, n.length() - 5) : n));
+                    String ext = s3Service.getExtension();
+                    for (String n : li) {
+                        String base = n.toLowerCase().endsWith(ext) ? n.substring(0, n.length() - ext.length()) : n;
+                        all.add(g + ":" + base);
+                    }
                 }
                 schemCache.clear();
                 schemCache.addAll(all);
@@ -47,23 +52,25 @@ public class SchemFlowPlugin extends JavaPlugin {
 
     public synchronized boolean reloadSchemFlowConfig() {
         try {
+            purgeEphemeralCache();
             sanitizeConfigTabs();
             sanitizeConfigQuotes();
             reloadConfig();
             FileConfiguration cfg = getConfig();
-            S3Service newService = new S3Service(
-                    cfg.getString("endpoint"),
-                    cfg.getString("accessKey"),
-                    cfg.getString("secretKey"),
-                    cfg.getString("bucket"),
-                    cfg.getBoolean("secure", true),
-                    cfg.getString("extension", "schm")
-            );
+        S3Service newService = new S3Service(
+            cfg.getString("endpoint"),
+            cfg.getString("accessKey"),
+            cfg.getString("secretKey"),
+            cfg.getString("bucket"),
+            cfg.getBoolean("secure", true),
+            cfg.getString("extension", "schem")
+        );
             if (this.s3Service != null) {
                 try { this.s3Service.close(); } catch (Exception ignore) {}
             }
             this.s3Service = newService;
             try { this.s3Service.createRoot(); } catch (Exception ignore) {}
+            initEphemeralCache();
 
             if (cacheTaskId != -1) {
                 getServer().getScheduler().cancelTask(cacheTaskId);
@@ -123,7 +130,7 @@ public class SchemFlowPlugin extends JavaPlugin {
                 cfg.getString("secretKey"),
                 cfg.getString("bucket"),
                 cfg.getBoolean("secure", true),
-                cfg.getString("extension", "schm"),
+                cfg.getString("extension", "schem"),
                 cfg.getString("storage.rootDir", "FlowStack/SchemFlow"),
                 cfg.getString("storage.defaultGroup", "default")
             );
@@ -133,6 +140,7 @@ public class SchemFlowPlugin extends JavaPlugin {
             return;
         }
         try { s3Service.createRoot(); } catch (Exception ignore) {}
+        initEphemeralCache();
 
         provisioner = new WorldProvisioner(this);
         int refreshSec = getConfig().getInt("cacheRefreshSeconds", 60);
@@ -164,7 +172,11 @@ public class SchemFlowPlugin extends JavaPlugin {
                 }
                 schemCache.clear();
                 schemCache.addAll(all);
-                getLogger().info("[SchemFlow] Found " + all.size() + " .schm objects across " + (groups.size() + 1) + " groups");
+                // Count only groups that have at least one schematic (including default)
+                int nonEmpty = 0;
+                if (!s3Service.listSchm().isEmpty()) nonEmpty++;
+                for (String g : groups) if (!s3Service.listSchm(g).isEmpty()) nonEmpty++;
+                getLogger().info("Found " + all.size() + " schematics across " + nonEmpty + " groups");
             } catch (Exception ex) {
                 getLogger().log(Level.WARNING, "List on start failed", ex);
             }
@@ -192,6 +204,7 @@ public class SchemFlowPlugin extends JavaPlugin {
         if (s3Service != null) s3Service.close();
         if (audiences != null) audiences.close();
         if (cacheTaskId != -1) getServer().getScheduler().cancelTask(cacheTaskId);
+        purgeEphemeralCache();
     }
 
     private void sanitizeConfigTabs() {
@@ -237,6 +250,34 @@ public class SchemFlowPlugin extends JavaPlugin {
             }
         } catch (Exception e) {
             getLogger().warning("Failed to sanitize quotes in config.yml: " + e.getMessage());
+        }
+    }
+
+    private void initEphemeralCache() {
+        try {
+            ephemeralCacheDir = getDataFolder().toPath().resolve("work").resolve("cache");
+            if (java.nio.file.Files.exists(ephemeralCacheDir)) {
+                purgeEphemeralCache();
+            }
+            java.nio.file.Files.createDirectories(ephemeralCacheDir);
+        } catch (Exception e) {
+            getLogger().warning("Failed to init ephemeral cache: " + e.getMessage());
+        }
+    }
+
+    public java.nio.file.Path getEphemeralCacheDir() { return ephemeralCacheDir; }
+
+    private void purgeEphemeralCache() {
+        try {
+            if (ephemeralCacheDir == null) return;
+            if (!java.nio.file.Files.exists(ephemeralCacheDir)) return;
+            try (var stream = java.nio.file.Files.walk(ephemeralCacheDir)) {
+                stream.sorted(java.util.Comparator.reverseOrder())
+                      .filter(p -> !p.equals(ephemeralCacheDir))
+                      .forEach(p -> { try { java.nio.file.Files.deleteIfExists(p); } catch (Exception ignore) {} });
+            }
+        } catch (Exception e) {
+            getLogger().warning("Failed to purge ephemeral cache: " + e.getMessage());
         }
     }
 }

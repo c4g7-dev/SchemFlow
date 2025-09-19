@@ -31,7 +31,7 @@ public class SkriptHook {
     }
 
     @Name("Paste SchemFlow Schematic")
-    @Description("Fetches a .schm by name and pastes the contained .schem at a location.")
+    @Description("Fetches a .schem by name (optionally group:name) and pastes it at a location.")
     @Since("0.1.0")
     public static class EffPasteSchematic extends Effect {
         private Expression<String> name;
@@ -54,21 +54,11 @@ public class SkriptHook {
                 try {
                     String group = null; String name = n;
                     int c = n.indexOf(':'); if (c > 0) { group = n.substring(0, c); name = n.substring(c + 1); }
-                    java.nio.file.Path schm = (group == null) ? s3.fetchSchm(name, dest) : s3.fetchSchm(name, group, dest);
-                    if (com.c4g7.schemflow.util.ZipUtils.isZip(schm)) {
-                        java.nio.file.Path outDir = schm.getParent().resolve(name);
-                        com.c4g7.schemflow.util.SafeIO.ensureDir(outDir);
-                        com.c4g7.schemflow.util.ZipUtils.unzip(schm, outDir);
-                        try (java.util.stream.Stream<java.nio.file.Path> st = java.nio.file.Files.walk(outDir)) {
-                            java.nio.file.Path schem = st.filter(pth -> pth.toString().toLowerCase().endsWith(".schem")).findFirst().orElse(null);
-                            if (schem != null) {
-                                SchemFlowPlugin.getInstance().getServer().getScheduler().runTask(SchemFlowPlugin.getInstance(), () -> {
-                                    try {
-                                        com.c4g7.schemflow.we.WorldEditUtils.paste(loc, schem, true);
-                                    } catch (Exception ignored) {}
-                                });
-                            }
-                        }
+                    java.nio.file.Path schemFile = (group == null) ? s3.fetchSchm(name, dest) : s3.fetchSchm(name, group, dest);
+                    if (schemFile != null && schemFile.toString().toLowerCase().endsWith(".schem")) {
+                        SchemFlowPlugin.getInstance().getServer().getScheduler().runTask(SchemFlowPlugin.getInstance(), () -> {
+                            try { com.c4g7.schemflow.we.WorldEditUtils.paste(loc, schemFile, true); } catch (Exception ignored) {}
+                        });
                     }
                 } catch (Exception ignored) {}
             });
@@ -76,7 +66,7 @@ public class SkriptHook {
     }
 
     @Name("SchemFlow Schematic Names")
-    @Description("Lists available .schm object names from the configured bucket.")
+    @Description("Lists available schematic names (group:name for non-default groups).")
     @Since("0.1.0")
     public static class ExprSchemList extends SimpleExpression<String> {
         @Override public boolean isSingle() { return false; }
@@ -89,9 +79,10 @@ public class SkriptHook {
                 java.util.List<String> groups = s3.listGroups();
                 java.util.List<String> out = new java.util.ArrayList<>();
                 out.addAll(s3.listSchm());
+                String ext = s3.getExtension();
                 for (String g : groups) {
                     for (String n : s3.listSchm(g)) {
-                        String base = n.endsWith(".schm") ? n.substring(0, n.length() - 5) : n;
+                        String base = n.toLowerCase().endsWith(ext) ? n.substring(0, n.length() - ext.length()) : n;
                         out.add(g + ":" + base);
                     }
                 }
@@ -120,7 +111,7 @@ public class SkriptHook {
     }
 
     @Name("Fetch SchemFlow Schematic")
-    @Description("Downloads a .schm file by name to an optional directory.")
+    @Description("Downloads a .schem file by name (optionally group:name) to an optional directory.")
     @Examples({"fetch schemflow schematic \"map1\" to \"plugins/FlowStack/schematics\""})
     @Since("0.1.0")
     public static class EffFetchSchematic extends Effect {

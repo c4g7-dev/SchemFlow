@@ -8,8 +8,8 @@ import java.util.UUID;
 
 public class UndoManager {
     public static class Action {
-        public enum Type { PASTE, DELETE }
-        public final Type type;
+        public enum Type { DELETE }
+        public final Type type; // only DELETE tracked; PASTE handled by WE history
         public final UUID player;
         public final String group;
         public final String name;

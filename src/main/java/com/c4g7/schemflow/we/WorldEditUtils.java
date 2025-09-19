@@ -56,21 +56,23 @@ public class WorldEditUtils {
         paste(at, schemFile, copyEntities, false, true);
     }
 
-    public static void paste(Location at, Path schemFile, boolean copyEntities, boolean ignoreAir, boolean copyBiomes) throws Exception {
+    public static boolean paste(Location at, Path schemFile, boolean copyEntities, boolean ignoreAir, boolean copyBiomes) throws Exception {
         ClipboardFormat format = ClipboardFormats.findByFile(schemFile.toFile());
         if (format == null) throw new IllegalStateException("Unknown schematic format: " + schemFile);
-        com.sk89q.worldedit.extent.clipboard.io.ClipboardReader reader = format.getReader(Files.newInputStream(schemFile));
-        try (com.sk89q.worldedit.extent.clipboard.io.ClipboardReader r = reader) {
-            com.sk89q.worldedit.extent.clipboard.Clipboard clipboard = r.read();
+        try (var reader = format.getReader(Files.newInputStream(schemFile))) {
+            var clipboard = reader.read();
             World weWorld = BukkitAdapter.adapt(at.getWorld());
             try (EditSession editSession = WorldEdit.getInstance().newEditSession(weWorld)) {
-                Operations.complete(new com.sk89q.worldedit.session.ClipboardHolder(clipboard)
+                editSession.setReorderMode(com.sk89q.worldedit.EditSession.ReorderMode.MULTI_STAGE);
+                var op = new com.sk89q.worldedit.session.ClipboardHolder(clipboard)
                         .createPaste(editSession)
                         .to(BlockVector3.at(at.getBlockX(), at.getBlockY(), at.getBlockZ()))
                         .ignoreAirBlocks(ignoreAir)
                         .copyEntities(copyEntities)
                         .copyBiomes(copyBiomes)
-                        .build());
+                        .build();
+                Operations.complete(op);
+                return true;
             }
         }
     }

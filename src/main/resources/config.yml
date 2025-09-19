@@ -3,10 +3,11 @@ secure: true
 accessKey: "MINIO_ACCESS_KEY"
 secretKey: "MINIO_SECRET_KEY"
 bucket: "schematics"
-extension: "schm"
+# Default schematic file extension. Allowed: "schem" (recommended) or "schematic".
+extension: "schem"
 
-# Where to place downloaded .schm files on disk
-downloadDir: "plugins/FlowStack/schematics"
+# Where to place downloaded schematic files on disk
+downloadDir: "plugins/SchemFlow/schematics"
 
 # Storage hierarchy (S3 object keys)
 storage:
@@ -28,7 +29,7 @@ worlds:
     enabled: false
     flat: true
     generatorSettings: '{"biome": "minecraft:plains","layers": []}'
-    schem: "example_world"    # .schm name (without extension)
+    schem: "example_world"    # schematic name (without extension)
     pasteAt: "0,64,0"
     gamerules:
       doMobSpawning: false
