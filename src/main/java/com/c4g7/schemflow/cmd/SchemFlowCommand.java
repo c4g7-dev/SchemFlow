@@ -331,21 +331,36 @@ public class SchemFlowCommand implements CommandExecutor {
                 });
             }
             case "group" -> {
-                if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow group create</gradient> <white><i>name</i></white>"); return true; }
-                if ("create".equalsIgnoreCase(args[1])) {
-                    if (!check(sender, "schemflow.group.create")) return true;
-                    if (args.length < 3) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow group create</gradient> <white><i>name</i></white>"); return true; }
-                    String grp = args[2];
-                    plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-                        try {
-                            s3.createGroup(grp);
-                            sendMM(sender, prefix() + " <green>Created group </green><aqua>" + grp + "</aqua>");
-                        } catch (Exception ex) {
-                            sendMM(sender, prefix() + " <red>Failed to create group:</red> <grey>" + ex.getMessage() + "</grey>");
-                        }
-                    });
-                } else {
-                    sendMM(sender, prefix() + " <grey>Unknown group subcommand.</grey>");
+                if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow group</gradient> <white><i>create|delete|rename</i></white> ..."); return true; }
+                switch (args[1].toLowerCase()) {
+                    case "create" -> {
+                        if (!check(sender, "schemflow.group.create")) return true;
+                        if (args.length < 3) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow group create</gradient> <white><i>name</i></white>"); return true; }
+                        String grp = args[2];
+                        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                            try { s3.createGroup(grp); sendMM(sender, prefix() + " <green>Created group </green><aqua>" + grp + "</aqua>"); }
+                            catch (Exception ex) { sendMM(sender, prefix() + " <red>Create failed:</red> <grey>" + ex.getMessage() + "</grey>"); }
+                        });
+                    }
+                    case "delete" -> {
+                        if (!check(sender, "schemflow.group.delete")) return true;
+                        if (args.length < 3) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow group delete</gradient> <white><i>name</i></white>"); return true; }
+                        String grp = args[2];
+                        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                            try { s3.deleteGroup(grp); sendMM(sender, prefix() + " <yellow>Deleted group </yellow><aqua>" + grp + "</aqua>"); }
+                            catch (Exception ex) { sendMM(sender, prefix() + " <red>Delete failed:</red> <grey>" + ex.getMessage() + "</grey>"); }
+                        });
+                    }
+                    case "rename" -> {
+                        if (!check(sender, "schemflow.group.rename")) return true;
+                        if (args.length < 4) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow group rename</gradient> <white><i>old new</i></white>"); return true; }
+                        String oldG = args[2]; String newG = args[3];
+                        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                            try { s3.renameGroup(oldG, newG); sendMM(sender, prefix() + " <green>Renamed group </green><aqua>" + oldG + "</aqua><grey> -> </grey><aqua>" + newG + "</aqua>"); }
+                            catch (Exception ex) { sendMM(sender, prefix() + " <red>Rename failed:</red> <grey>" + ex.getMessage() + "</grey>"); }
+                        });
+                    }
+                    default -> sendMM(sender, prefix() + " <grey>Unknown group subcommand.</grey>");
                 }
             }
             case "provision" -> {
