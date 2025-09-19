@@ -59,28 +59,32 @@ public class SchemFlowTabCompleter implements TabCompleter {
             List<String> out = new ArrayList<>();
             try {
                 var plugin = com.c4g7.schemflow.SchemFlowPlugin.getInstance();
-                var s3 = plugin.getS3Service();
-                String ext = s3.getExtension();
-                int extLen = ext.length();
+                
                 if (root.equals("restore")) {
+                    // Restore still needs live S3 call as trash is not cached
+                    var s3 = plugin.getS3Service();
+                    String ext = s3.getExtension();
+                    int extLen = ext.length();
                     for (String n : s3.listTrash()) {
                         String base = n.toLowerCase().endsWith(ext) ? n.substring(0, n.length() - extLen) : n;
                         if (base.toLowerCase().startsWith(p)) out.add(base);
                     }
                 } else {
-                    // Add server schematics
-                    for (String n : s3.listSchm()) {
-                        String base = n.toLowerCase().endsWith(ext) ? n.substring(0, n.length() - extLen) : n;
-                        if (base.toLowerCase().startsWith(p)) out.add(base);
-                    }
-                    for (String g : s3.listGroups()) {
-                        // Skip default group to avoid duplicates (already listed above without group prefix)
-                        if (g.equalsIgnoreCase("default")) continue;
-                        for (String n : s3.listSchm(g)) {
-                            String base = n.toLowerCase().endsWith(ext) ? n.substring(0, n.length() - extLen) : n;
-                            String pref = g + ":" + base;
-                            if (pref.toLowerCase().startsWith(p)) out.add(pref);
+                    // Use cached schematic data for better performance
+                    var cachedSchematics = plugin.getSchematicCache();
+                    String ext = plugin.getS3Service().getExtension();
+                    int extLen = ext.length();
+                    
+                    for (String cached : cachedSchematics) {
+                        String base;
+                        if (cached.contains(":")) {
+                            // This is a group:name format - use as-is
+                            base = cached;
+                        } else {
+                            // This is a plain schematic name - remove extension
+                            base = cached.toLowerCase().endsWith(ext) ? cached.substring(0, cached.length() - extLen) : cached;
                         }
+                        if (base.toLowerCase().startsWith(p)) out.add(base);
                     }
                     
                     // Add local schematics for paste command
@@ -132,8 +136,21 @@ public class SchemFlowTabCompleter implements TabCompleter {
             String p = args[3].toLowerCase();
             List<String> out = new ArrayList<>();
             try {
-                java.util.List<String> groups = com.c4g7.schemflow.SchemFlowPlugin.getInstance().getS3Service().listGroups();
-                for (String g : groups) if (g.toLowerCase().startsWith(p)) out.add(g);
+                // Extract group names from cached schematics instead of making S3 call
+                var plugin = com.c4g7.schemflow.SchemFlowPlugin.getInstance();
+                var cachedSchematics = plugin.getSchematicCache();
+                java.util.Set<String> groups = new java.util.HashSet<>();
+                
+                for (String cached : cachedSchematics) {
+                    if (cached.contains(":")) {
+                        String groupName = cached.substring(0, cached.indexOf(":"));
+                        groups.add(groupName);
+                    }
+                }
+                
+                for (String g : groups) {
+                    if (g.toLowerCase().startsWith(p)) out.add(g);
+                }
             } catch (Exception ignored) {}
             return out;
         }
@@ -197,8 +214,21 @@ public class SchemFlowTabCompleter implements TabCompleter {
             List<String> out = new ArrayList<>();
             String p = args[2].toLowerCase();
             try {
-                java.util.List<String> groups = com.c4g7.schemflow.SchemFlowPlugin.getInstance().getS3Service().listGroups();
-                for (String g : groups) if (g.toLowerCase().startsWith(p)) out.add(g);
+                // Extract group names from cached schematics instead of making S3 call
+                var plugin = com.c4g7.schemflow.SchemFlowPlugin.getInstance();
+                var cachedSchematics = plugin.getSchematicCache();
+                java.util.Set<String> groups = new java.util.HashSet<>();
+                
+                for (String cached : cachedSchematics) {
+                    if (cached.contains(":")) {
+                        String groupName = cached.substring(0, cached.indexOf(":"));
+                        groups.add(groupName);
+                    }
+                }
+                
+                for (String g : groups) {
+                    if (g.toLowerCase().startsWith(p)) out.add(g);
+                }
             } catch (Exception ignored) {}
             return out;
         }
