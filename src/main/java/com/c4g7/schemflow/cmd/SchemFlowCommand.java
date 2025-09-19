@@ -69,10 +69,11 @@ public class SchemFlowCommand implements CommandExecutor {
                     // Build grouped listing
                     java.util.List<String> groups = s3.listGroups();
                     java.util.Map<String, java.util.List<String>> grouped = new java.util.LinkedHashMap<>();
-                    // Always include default first
-                    grouped.put("Default", s3.listSchm(null));
+                    // Always include default first (use actual configured name)
+                    String defaultGroupName = plugin.getConfig().getString("storage.defaultGroup", "default");
+                    grouped.put(defaultGroupName, s3.listSchm(null));
                     for (String g : groups) {
-                        if (g.equalsIgnoreCase("default")) continue;
+                        if (g.equalsIgnoreCase(defaultGroupName)) continue;
                         grouped.put(g, s3.listSchm(g));
                     }
                     StringBuilder sb = new StringBuilder();
