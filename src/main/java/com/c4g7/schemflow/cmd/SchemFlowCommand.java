@@ -264,7 +264,17 @@ public class SchemFlowCommand implements CommandExecutor {
                 } else if ("clear".equalsIgnoreCase(args[1])) {
                     if (!check(sender, "schemflow.trash.clear")) return true;
                     boolean confirmed = java.util.Arrays.stream(args).anyMatch(a -> a.equalsIgnoreCase("--confirm"));
-                    if (!confirmed) { sendMM(sender, prefix() + " <yellow>This will permanently delete all trashed schematics.</yellow> <grey>Re-run with</grey> <aqua>--confirm</aqua> <grey>to proceed.</grey>"); return true; }
+                    if (!confirmed) {
+                        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                            try {
+                                java.util.List<String> items = s3.listTrash();
+                                sendMM(sender, prefix() + " <yellow>This will permanently delete </yellow><aqua>" + items.size() + "</aqua> <yellow>trashed schematics.</yellow> <grey>Re-run with</grey> <aqua>--confirm</aqua> <grey>to proceed.</grey>");
+                            } catch (Exception ex) {
+                                sendMM(sender, prefix() + " <red>Trash lookup failed:</red> <grey>" + ex.getMessage() + "</grey>");
+                            }
+                        });
+                        return true;
+                    }
                     plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                         try { s3.clearTrash(); sendMM(sender, prefix() + " <green>Trash cleared.</green>"); }
                         catch (Exception ex) { sendMM(sender, prefix() + " <red>Trash clear failed:</red> <grey>" + ex.getMessage() + "</grey>"); }
@@ -344,8 +354,20 @@ public class SchemFlowCommand implements CommandExecutor {
                     }
                     case "delete" -> {
                         if (!check(sender, "schemflow.group.delete")) return true;
-                        if (args.length < 3) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow group delete</gradient> <white><i>name</i></white>"); return true; }
+                        if (args.length < 3) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow group delete</gradient> <white><i>name</i></white> [--confirm]"); return true; }
                         String grp = args[2];
+                        boolean confirmed = java.util.Arrays.stream(args).anyMatch(a -> a.equalsIgnoreCase("--confirm"));
+                        if (!confirmed) {
+                            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                                try {
+                                    java.util.List<String> sch = s3.listSchm(grp);
+                                    sendMM(sender, prefix() + " <yellow>This will delete group </yellow><aqua>" + grp + "</aqua> <yellow>and </yellow><aqua>" + sch.size() + "</aqua> <yellow>schematics.</yellow> <grey>Re-run with</grey> <aqua>--confirm</aqua> <grey>to proceed.</grey>");
+                                } catch (Exception ex) {
+                                    sendMM(sender, prefix() + " <red>Lookup failed:</red> <grey>" + ex.getMessage() + "</grey>");
+                                }
+                            });
+                            return true;
+                        }
                         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                             try { s3.deleteGroup(grp); sendMM(sender, prefix() + " <yellow>Deleted group </yellow><aqua>" + grp + "</aqua>"); }
                             catch (Exception ex) { sendMM(sender, prefix() + " <red>Delete failed:</red> <grey>" + ex.getMessage() + "</grey>"); }
