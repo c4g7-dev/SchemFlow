@@ -127,8 +127,24 @@ public class SchemFlowTabCompleter implements TabCompleter {
         }
         if (args.length == 2 && "group".equalsIgnoreCase(args[0])) {
             List<String> out = new ArrayList<>();
-            if ("create".startsWith(args[1].toLowerCase())) out.add("create");
+            String p = args[1].toLowerCase();
+            if ("create".startsWith(p) && (sender.hasPermission("schemflow.group.create") || sender.hasPermission("schemflow.admin"))) out.add("create");
+            if ("delete".startsWith(p) && (sender.hasPermission("schemflow.group.delete") || sender.hasPermission("schemflow.admin"))) out.add("delete");
+            if ("rename".startsWith(p) && (sender.hasPermission("schemflow.group.rename") || sender.hasPermission("schemflow.admin"))) out.add("rename");
             return out;
+        }
+        if (args.length == 3 && "group".equalsIgnoreCase(args[0]) && ("delete".equalsIgnoreCase(args[1]) || "rename".equalsIgnoreCase(args[1]))) {
+            List<String> out = new ArrayList<>();
+            String p = args[2].toLowerCase();
+            try {
+                java.util.List<String> groups = com.c4g7.schemflow.SchemFlowPlugin.getInstance().getS3Service().listGroups();
+                for (String g : groups) if (g.toLowerCase().startsWith(p)) out.add(g);
+            } catch (Exception ignored) {}
+            return out;
+        }
+        if (args.length == 4 && "group".equalsIgnoreCase(args[0]) && "rename".equalsIgnoreCase(args[1])) {
+            // new group name freeform; no suggestions
+            return Collections.emptyList();
         }
         return Collections.emptyList();
     }
