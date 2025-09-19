@@ -10,7 +10,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class SchemFlowTabCompleter implements TabCompleter {
-    private static final List<String> ROOT = Arrays.asList("help", "list", "fetch", "pos1", "pos2", "upload", "paste", "delete", "cache", "reload", "provision", "groups", "group");
+    private static final List<String> ROOT = Arrays.asList("help", "list", "fetch", "pos1", "pos2", "upload", "paste", "delete", "restore", "undo", "redo", "cache", "reload", "provision", "groups", "group");
     private static final List<String> FLAG_COMBOS = Arrays.asList("-e", "-a", "-b", "-ea", "-eb", "-ab", "-eab");
 
     @Override
@@ -30,6 +30,9 @@ public class SchemFlowTabCompleter implements TabCompleter {
                     case "upload" -> sender.hasPermission("schemflow.upload") || sender.hasPermission("schemflow.admin");
                     case "paste" -> sender.hasPermission("schemflow.paste") || sender.hasPermission("schemflow.admin");
                     case "delete" -> sender.hasPermission("schemflow.delete") || sender.hasPermission("schemflow.admin");
+                    case "restore" -> sender.hasPermission("schemflow.restore") || sender.hasPermission("schemflow.admin");
+                    case "undo" -> sender.hasPermission("schemflow.paste") || sender.hasPermission("schemflow.admin");
+                    case "redo" -> sender.hasPermission("schemflow.paste") || sender.hasPermission("schemflow.admin");
                     case "cache" -> sender.hasPermission("schemflow.cache") || sender.hasPermission("schemflow.admin");
                     case "reload" -> sender.hasPermission("schemflow.reload") || sender.hasPermission("schemflow.admin");
                     case "provision" -> sender.hasPermission("schemflow.provision") || sender.hasPermission("schemflow.admin");
@@ -52,34 +55,50 @@ public class SchemFlowTabCompleter implements TabCompleter {
             try {
                 var plugin = com.c4g7.schemflow.SchemFlowPlugin.getInstance();
                 var s3 = plugin.getS3Service();
-                // Default group first without prefix
-                for (String n : s3.listSchm()) {
-                    String base = n.endsWith(".schm") ? n.substring(0, n.length() - 5) : n;
-                    if (base.toLowerCase().startsWith(p)) out.add(base);
-                }
-                // Then other groups with group:name format
-                for (String g : s3.listGroups()) {
-                    for (String n : s3.listSchm(g)) {
-                        String base = n.endsWith(".schm") ? n.substring(0, n.length() - 5) : n;
-                        String pref = g + ":" + base;
-                        if (pref.toLowerCase().startsWith(p)) out.add(pref);
+                String ext = s3.getExtension();
+                int extLen = ext.length();
+                if (root.equals("restore")) {
+                    for (String n : s3.listTrash()) {
+                        String base = n.toLowerCase().endsWith(ext) ? n.substring(0, n.length() - extLen) : n;
+                        if (base.toLowerCase().startsWith(p)) out.add(base);
+                    }
+                } else {
+                    for (String n : s3.listSchm()) {
+                        String base = n.toLowerCase().endsWith(ext) ? n.substring(0, n.length() - extLen) : n;
+                        if (base.toLowerCase().startsWith(p)) out.add(base);
+                    }
+                    for (String g : s3.listGroups()) {
+                        for (String n : s3.listSchm(g)) {
+                            String base = n.toLowerCase().endsWith(ext) ? n.substring(0, n.length() - extLen) : n;
+                            String pref = g + ":" + base;
+                            if (pref.toLowerCase().startsWith(p)) out.add(pref);
+                        }
                     }
                 }
             } catch (Exception ignored) {}
             return out;
         }
-    if (args.length == 3 && ("upload".equalsIgnoreCase(args[0]) )) {
+    if (args.length == 3 && ("upload".equalsIgnoreCase(args[0]) || "paste".equalsIgnoreCase(args[0]) || "restore".equalsIgnoreCase(args[0]) )) {
             String root = args[0].toLowerCase();
-            if ((root.equals("upload") && !(sender.hasPermission("schemflow.upload") || sender.hasPermission("schemflow.admin")))) {
+            if ((root.equals("upload") && !(sender.hasPermission("schemflow.upload") || sender.hasPermission("schemflow.admin"))) ||
+                (root.equals("paste") && !(sender.hasPermission("schemflow.paste") || sender.hasPermission("schemflow.admin"))) ||
+                (root.equals("restore") && !(sender.hasPermission("schemflow.restore") || sender.hasPermission("schemflow.admin")))) {
                 return Collections.emptyList();
             }
             String p = args[2].toLowerCase();
             List<String> out = new ArrayList<>();
-            for (String s : FLAG_COMBOS) if (s.startsWith(p)) out.add(s);
-            if ("-group".startsWith(p)) out.add("-group");
+            if (!root.equals("restore")) {
+                for (String s : FLAG_COMBOS) if (s.startsWith(p)) out.add(s);
+            }
+            if ((root.equals("upload") || root.equals("restore")) && "-group".startsWith(p)) out.add("-group");
             return out;
         }
-        if (args.length == 4 && ("upload".equalsIgnoreCase(args[0]))) {
+        if (args.length == 4 && ("upload".equalsIgnoreCase(args[0]) || "restore".equalsIgnoreCase(args[0]))) {
+            String root = args[0].toLowerCase();
+            if ((root.equals("upload") && !(sender.hasPermission("schemflow.upload") || sender.hasPermission("schemflow.admin"))) ||
+                (root.equals("restore") && !(sender.hasPermission("schemflow.restore") || sender.hasPermission("schemflow.admin")))) {
+                return Collections.emptyList();
+            }
             if (!"-group".equalsIgnoreCase(args[2])) return Collections.emptyList();
             String p = args[3].toLowerCase();
             List<String> out = new ArrayList<>();
