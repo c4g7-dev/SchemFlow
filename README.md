@@ -318,7 +318,7 @@ cd SchemFlow
 mvn clean package
 ```
 
-**Output**: `target/SchemFlow-0.5.11-all.jar`
+**Output**: `target/SchemFlow-v0.5.11-all.jar`
 
 ### **Development Setup**
 - **IDE**: Visual Studio Code (recommended) with Maven support
