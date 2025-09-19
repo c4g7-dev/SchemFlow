@@ -66,5 +66,6 @@ secrets.yml
 # Local release tooling (keep out of VCS)
 scripts/release.ps1
 
-# Modrinth description (local only)
+# Modrinth description and changelogs (local only)
 modrinth-desc.md
+MODRINTH_CHANGELOG_*.md

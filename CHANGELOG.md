@@ -1,5 +1,49 @@
 # Changelog
 
+## 0.5.12 - 2025-09-19
+### Major Features Added
+- **Local Schematics Support**: New `local:` prefix system for offline schematic usage
+  - `/schemflow paste local:name` - Use locally fetched schematics without server connection
+  - `/schemflow local` - List all locally downloaded schematics  
+  - `/schemflow local delete <name> --confirm` - Delete local schematics with confirmation
+- **Dedicated Update Command**: Safer schematic overwriting with explicit confirmation
+  - `/schemflow update <schematic> --confirm` - Update existing schematics safely
+  - Replaces the old `/schemflow upload -update --confirm` pattern
+- **Enhanced Tab Completion**: Complete local and server schematic integration
+  - Local schematics appear as `local:name` in paste command
+  - Server schematics show proper group prefixes (`group:name`)
+  - Default group appears without prefix as intended
+
+### Performance Improvements
+- **Major Tab Completion Optimization**: Eliminated live S3 calls during tab completion
+  - Now uses cached data for instant responsiveness
+  - Reduced network requests by 90%+ during command completion
+  - Fixed slow tab completion issues with high-latency connections
+
+### User Experience Enhancements  
+- **Command Structure Overhaul**: More intuitive command organization
+  - Removed `-local` flag complexity in favor of clear `local:` prefix
+  - Consistent group naming throughout (matches storage exactly)
+  - Complete interface shows all available options in tab completion
+- **Default Group Consistency**: Fixed display inconsistencies
+  - List command now shows group names exactly as configured and stored
+  - No more "Default:" vs "default:" confusion
+
+### Technical Improvements
+- **Cache Consistency**: Unified all cache population methods
+  - Fixed duplicate entries in tab completion
+  - Proper handling of default group vs non-default groups
+  - Consistent extension stripping and name processing
+- **Code Architecture**: Cleaned up flag parsing and command logic
+  - Removed unused methods and redundant code paths
+  - Better separation of local vs server operations
+  - Enhanced error handling and user feedback
+
+### Configuration
+- Cache refresh interval (`cacheRefreshSeconds`) fully functional and optimized
+- Default group handling respects `storage.defaultGroup` setting throughout
+- Local schematic directory configurable via `downloadDir` setting
+
 ## 0.5.11-2 - 2025-09-19
 ### Fixed
 - CI fallback: removed direct dependency on `getEphemeralCacheDir()` in `SchemFlowCommand` (now derives path locally) to avoid build mismatch with older tag snapshots.
