@@ -4,7 +4,6 @@ public class WeFlags {
     public boolean entities;
     public boolean ignoreAir;
     public boolean biomes;
-    public boolean local;
     public boolean update;
 
     public static WeFlags parse(String token) {
@@ -26,9 +25,7 @@ public class WeFlags {
         WeFlags f = new WeFlags();
         for (String arg : args) {
             if (arg == null) continue;
-            if (arg.equalsIgnoreCase("-local")) {
-                f.local = true;
-            } else if (arg.equalsIgnoreCase("-update")) {
+            if (arg.equalsIgnoreCase("-update")) {
                 f.update = true;
             } else if (arg.startsWith("-") && arg.length() > 1) {
                 // Parse single character flags like -e, -a, -b, -eab

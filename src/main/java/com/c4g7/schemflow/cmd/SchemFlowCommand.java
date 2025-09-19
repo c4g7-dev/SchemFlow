@@ -115,6 +115,72 @@ public class SchemFlowCommand implements CommandExecutor {
                     }
                 });
             }
+            case "local" -> {
+                if (!check(sender, "schemflow.local")) return true;
+                if (args.length > 1 && args[1].equalsIgnoreCase("delete")) {
+                    // Handle local delete subcommand
+                    if (args.length < 3) {
+                        sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow local delete</gradient> <white><i>name</i></white> <grey>[--confirm]</grey>");
+                        return true;
+                    }
+                    String fileName = args[2];
+                    String downloadDir = plugin.getConfig().getString("downloadDir", "plugins/SchemFlow/schematics");
+                    
+                    if (!hasFlag(args, "--confirm")) {
+                        sendMM(sender, prefix() + " <yellow>This will delete local schematic </yellow><aqua>" + fileName + "</aqua><yellow>. Use</yellow> <aqua>--confirm</aqua> <yellow>to proceed.</yellow>");
+                        return true;
+                    }
+                    
+                    try {
+                        java.nio.file.Path downloadPath = java.nio.file.Paths.get(downloadDir);
+                        java.nio.file.Path file = downloadPath.resolve(fileName);
+                        
+                        // Add extension if not present
+                        if (!fileName.toLowerCase().endsWith(".schem") && !fileName.toLowerCase().endsWith(".schematic")) {
+                            file = downloadPath.resolve(fileName + ".schem");
+                        }
+                        
+                        if (java.nio.file.Files.exists(file)) {
+                            java.nio.file.Files.delete(file);
+                            sendMM(sender, prefix() + " <green>Deleted local schematic </green><aqua>" + fileName + "</aqua>");
+                        } else {
+                            sendMM(sender, prefix() + " <red>Local schematic not found:</red> <grey>" + fileName + "</grey>");
+                        }
+                    } catch (Exception ex) {
+                        sendMM(sender, prefix() + " <red>Delete failed:</red> <grey>" + ex.getMessage() + "</grey>");
+                    }
+                } else {
+                    // List local schematics
+                    String downloadDir = plugin.getConfig().getString("downloadDir", "plugins/SchemFlow/schematics");
+                    try {
+                        java.nio.file.Path downloadPath = java.nio.file.Paths.get(downloadDir);
+                        if (!java.nio.file.Files.exists(downloadPath)) {
+                            sendMM(sender, prefix() + " <grey>No local schematics found. Directory does not exist:</grey> <aqua>" + downloadDir + "</aqua>");
+                            return true;
+                        }
+                        
+                        java.util.List<String> files = new java.util.ArrayList<>();
+                        try (java.nio.file.DirectoryStream<java.nio.file.Path> stream = java.nio.file.Files.newDirectoryStream(downloadPath, "*.{schem,schematic}")) {
+                            for (java.nio.file.Path file : stream) {
+                                files.add(file.getFileName().toString());
+                            }
+                        }
+                        
+                        if (files.isEmpty()) {
+                            sendMM(sender, prefix() + " <grey>No local schematics found in:</grey> <aqua>" + downloadDir + "</aqua>");
+                        } else {
+                            files.sort(String.CASE_INSENSITIVE_ORDER);
+                            StringBuilder sb = new StringBuilder();
+                            for (String file : files) {
+                                sb.append(" - <aqua>").append(file).append("</aqua>\n");
+                            }
+                            sendMM(sender, prefix() + " <grey>Local schematics (" + files.size() + "):</grey>\n" + sb.toString());
+                        }
+                    } catch (Exception ex) {
+                        sendMM(sender, prefix() + " <red>Failed to list local schematics:</red> <grey>" + ex.getMessage() + "</grey>");
+                    }
+                }
+            }
             case "pos1" -> {
                 if (!check(sender, "schemflow.pos1")) return true;
                 if (!(sender instanceof Player p)) { sendMM(sender, prefix() + " <red>Player only.</red>"); return true; }
@@ -146,8 +212,22 @@ public class SchemFlowCommand implements CommandExecutor {
                     com.c4g7.schemflow.we.WorldEditUtils.exportCuboid(a, b, schem, weFlags);
                     plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                         try {
-                            if (group == null) s3.uploadSchm(schem, id); else s3.uploadSchm(schem, id, group);
-                            sendMM(sender, prefix() + " <green>Uploaded schematic </green><aqua>" + id + ext + "</aqua>");
+                            // Check if update flag is present and --confirm is provided
+                            if (weFlags.update) {
+                                if (!hasFlag(args, "--confirm")) {
+                                    sendMM(sender, prefix() + " <yellow>This will overwrite existing schematic. Use</yellow> <aqua>--confirm</aqua> <yellow>to proceed.</yellow>");
+                                    return;
+                                }
+                                // Use overwrite method for updates
+                                if (group == null) s3.uploadSchmOverwrite(schem, id); 
+                                else s3.uploadSchmOverwrite(schem, id, group);
+                                sendMM(sender, prefix() + " <green>Updated schematic </green><aqua>" + id + ext + "</aqua>");
+                            } else {
+                                // Regular upload (will fail if exists)
+                                if (group == null) s3.uploadSchm(schem, id); 
+                                else s3.uploadSchm(schem, id, group);
+                                sendMM(sender, prefix() + " <green>Uploaded schematic </green><aqua>" + id + ext + "</aqua>");
+                            }
                             plugin.refreshSchematicCacheAsync();
                         } catch (Exception ex) {
                             sendMM(sender, prefix() + " <red>Upload failed:</red> <grey>" + ex.getMessage() + "</grey>");
@@ -159,29 +239,103 @@ public class SchemFlowCommand implements CommandExecutor {
                     sendMM(sender, prefix() + " <red>Export failed:</red> <grey>" + ex.getMessage() + "</grey>");
                 }
             }
-            case "paste" -> {
-                if (!check(sender, "schemflow.paste")) return true;
+            case "update" -> {
+                if (!check(sender, "schemflow.upload")) return true;
                 if (!(sender instanceof Player p)) { sendMM(sender, prefix() + " <red>Player only.</red>"); return true; }
-                if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow paste</gradient> <white><i>[group:]name</i></white> <white><i>[-flags] [-local]</i></white>"); return true; }
+                if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow update</gradient> <white><i>[group:]name</i></white> <white><i>[-flags]</i></white> <grey>[--confirm]</grey>"); return true; }
+                if (!plugin.getSelection().hasBoth(p.getUniqueId())) { sendMM(sender, prefix() + " <red>Set pos1 and pos2 first.</red>"); return true; }
+                
+                // Parse schematic name and group
                 String tmpName = args[1];
                 String tmpGroup = null;
                 int colon = tmpName.indexOf(':');
                 if (colon > 0) { tmpGroup = tmpName.substring(0, colon); tmpName = tmpName.substring(colon + 1); }
-                final com.c4g7.schemflow.we.WeFlags weFlags = com.c4g7.schemflow.we.WeFlags.parseArgs(args);
-                // Use downloadDir if -local flag present, otherwise ephemeral cache
-                final String targetDir;
-                if (weFlags.local) {
-                    targetDir = plugin.getConfig().getString("downloadDir", "plugins/SchemFlow/schematics");
-                } else {
-                    java.nio.file.Path eph = plugin.getDataFolder().toPath().resolve("work").resolve("cache");
-                    try { java.nio.file.Files.createDirectories(eph); } catch (Exception ignore) {}
-                    targetDir = eph.toString();
-                }
                 final String name = tmpName;
                 final String group = tmpGroup;
+                
+                // Check if --confirm is provided
+                if (!hasFlag(args, "--confirm")) {
+                    sendMM(sender, prefix() + " <yellow>This will overwrite existing schematic </yellow><aqua>" + (group != null ? group + ":" : "") + name + "</aqua><yellow>. Use</yellow> <aqua>--confirm</aqua> <yellow>to proceed.</yellow>");
+                    return true;
+                }
+                
+                final com.c4g7.schemflow.we.WeFlags weFlags = com.c4g7.schemflow.we.WeFlags.parseArgs(args);
+                Location a = plugin.getSelection().getPos1(p.getUniqueId());
+                Location b = plugin.getSelection().getPos2(p.getUniqueId());
+                try {
+                    java.nio.file.Path workRoot = getPluginWorkDir();
+                    java.nio.file.Path sessionDir = workRoot.resolve(name + "-" + System.nanoTime());
+                    java.nio.file.Files.createDirectories(sessionDir);
+                    String ext = plugin.getS3Service().getExtension();
+                    Path schem = sessionDir.resolve(name + ext);
+                    com.c4g7.schemflow.we.WorldEditUtils.exportCuboid(a, b, schem, weFlags);
+                    plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                        try {
+                            // Always use overwrite method for update command
+                            if (group == null) s3.uploadSchmOverwrite(schem, name); 
+                            else s3.uploadSchmOverwrite(schem, name, group);
+                            sendMM(sender, prefix() + " <green>Updated schematic </green><aqua>" + (group != null ? group + ":" : "") + name + ext + "</aqua>");
+                            plugin.refreshSchematicCacheAsync();
+                        } catch (Exception ex) {
+                            sendMM(sender, prefix() + " <red>Update failed:</red> <grey>" + ex.getMessage() + "</grey>");
+                        } finally {
+                            try { java.nio.file.Files.deleteIfExists(schem); java.nio.file.Files.delete(sessionDir); } catch (Exception ignore) {}
+                        }
+                    });
+                } catch (Exception ex) {
+                    sendMM(sender, prefix() + " <red>Export failed:</red> <grey>" + ex.getMessage() + "</grey>");
+                }
+            }
+            case "paste" -> {
+                if (!check(sender, "schemflow.paste")) return true;
+                if (!(sender instanceof Player p)) { sendMM(sender, prefix() + " <red>Player only.</red>"); return true; }
+                if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow paste</gradient> <white><i>[group:]name</i></white> <white><i>or</i></white> <white><i>local:name</i></white> <white><i>[-flags]</i></white>"); return true; }
+                String tmpName = args[1];
+                String tmpGroup = null;
+                boolean useLocal = false;
+                
+                // Check if using local: prefix
+                if (tmpName.startsWith("local:")) {
+                    useLocal = true;
+                    tmpName = tmpName.substring(6); // Remove "local:" prefix
+                } else {
+                    // Parse group:name format for server schematics
+                    int colon = tmpName.indexOf(':');
+                    if (colon > 0) { tmpGroup = tmpName.substring(0, colon); tmpName = tmpName.substring(colon + 1); }
+                }
+                
+                final com.c4g7.schemflow.we.WeFlags weFlags = com.c4g7.schemflow.we.WeFlags.parseArgs(args);
+                final String name = tmpName;
+                final String group = tmpGroup;
+                final boolean isLocal = useLocal;
+                
                 plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                     try {
-                        Path schemFile = (group == null) ? s3.fetchSchm(name, targetDir) : s3.fetchSchm(name, group, targetDir);
+                        final Path schemFile;
+                        if (isLocal) {
+                            // Use local directory
+                            String downloadDir = plugin.getConfig().getString("downloadDir", "plugins/SchemFlow/schematics");
+                            java.nio.file.Path downloadPath = java.nio.file.Paths.get(downloadDir);
+                            Path tempFile = downloadPath.resolve(name);
+                            
+                            // Add extension if not present
+                            if (!name.toLowerCase().endsWith(".schem") && !name.toLowerCase().endsWith(".schematic")) {
+                                tempFile = downloadPath.resolve(name + ".schem");
+                            }
+                            schemFile = tempFile;
+                            
+                            if (!java.nio.file.Files.exists(schemFile)) {
+                                sendMM(sender, prefix() + " <red>Local schematic not found:</red> <grey>" + name + "</grey>");
+                                return;
+                            }
+                        } else {
+                            // Fetch from server to ephemeral cache
+                            java.nio.file.Path eph = plugin.getDataFolder().toPath().resolve("work").resolve("cache");
+                            try { java.nio.file.Files.createDirectories(eph); } catch (Exception ignore) {}
+                            String targetDir = eph.toString();
+                            schemFile = (group == null) ? s3.fetchSchm(name, targetDir) : s3.fetchSchm(name, group, targetDir);
+                        }
+                        
                         org.bukkit.Location at = p.getLocation();
 
                         plugin.getServer().getScheduler().runTask(plugin, () -> {
@@ -214,8 +368,8 @@ public class SchemFlowCommand implements CommandExecutor {
                             } catch (Exception ex) {
                                 sendMM(p, prefix() + " <red>Paste failed:</red> <grey>" + ex.getMessage() + "</grey>");
                             } finally {
-                                // Only delete file if using ephemeral cache (not -local)
-                                if (weFlags == null || !weFlags.local) {
+                                // Only delete file if using ephemeral cache (not local)
+                                if (!isLocal) {
                                     try { java.nio.file.Files.deleteIfExists(schemFile); } catch (Exception ignore) {}
                                 }
                             }
@@ -424,8 +578,11 @@ public class SchemFlowCommand implements CommandExecutor {
         "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " pos1</gradient> <dark_grey>-</dark_grey> Set first position</grey>\n" +
         "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " pos2</gradient> <dark_grey>-</dark_grey> Set second position</grey>\n" +
         "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " upload</gradient> <white><i>id</i></white> <dark_grey>-</dark_grey> Export selection and upload</grey>\n" +
-        "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " paste</gradient> <white><i>[group:]name</i></white> <dark_grey>-</dark_grey> Fetch and paste at location</grey>\n" +
+        "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " update</gradient> <white><i>[group:]name</i></white> <grey>[--confirm]</grey> <dark_grey>-</dark_grey> Update existing schematic</grey>\n" +
+        "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " paste</gradient> <white><i>[group:]name</i></white> <white><i>or</i></white> <white><i>local:name</i></white> <dark_grey>-</dark_grey> Fetch and paste schematic</grey>\n" +
         "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " delete</gradient> <white><i>[group:]name</i></white> <dark_grey>-</dark_grey> Delete schematic from storage</grey>\n" +
+        "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " local</gradient> <dark_grey>-</dark_grey> List local schematics</grey>\n" +
+        "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " local delete</gradient> <white><i>name</i></white> <grey>[--confirm]</grey> <dark_grey>-</dark_grey> Delete local schematic</grey>\n" +
         "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " cache</gradient> <dark_grey>-</dark_grey> Refresh schematic name cache (all groups)</grey>\n" +
         "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " reload</gradient> <dark_grey>-</dark_grey> Reload config and services</grey>\n" +
                 "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " provision</gradient> <white><i>world</i></white> <dark_grey>-</dark_grey> Create/load and paste base</grey>\n" +
@@ -513,5 +670,12 @@ public class SchemFlowCommand implements CommandExecutor {
             out.add(group + ":" + base);
         }
         return out;
+    }
+
+    private boolean hasFlag(String[] args, String flag) {
+        for (String arg : args) {
+            if (flag.equals(arg)) return true;
+        }
+        return false;
     }
 }
