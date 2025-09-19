@@ -11,7 +11,7 @@ import java.util.List;
 
 public class SchemFlowTabCompleter implements TabCompleter {
     private static final List<String> ROOT = Arrays.asList("help", "list", "fetch", "pos1", "pos2", "upload", "paste", "delete", "restore", "undo", "redo", "cache", "reload", "provision", "groups", "group", "trash");
-    private static final List<String> FLAG_COMBOS = Arrays.asList("-e", "-a", "-b", "-l", "-ea", "-eb", "-ab", "-el", "-al", "-bl", "-eab", "-eal", "-ebl", "-abl", "-eabl");
+    private static final List<String> FLAG_COMBOS = Arrays.asList("-e", "-a", "-b", "-ea", "-eb", "-ab", "-eab");
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
@@ -91,6 +91,9 @@ public class SchemFlowTabCompleter implements TabCompleter {
             List<String> out = new ArrayList<>();
             if (!root.equals("restore")) {
                 for (String s : FLAG_COMBOS) if (s.startsWith(p)) out.add(s);
+                // Add command-specific flags
+                if (root.equals("paste") && "-local".startsWith(p)) out.add("-local");
+                if (root.equals("upload") && "-update".startsWith(p)) out.add("-update");
             }
             if ((root.equals("upload") || root.equals("restore")) && "-group".startsWith(p)) out.add("-group");
             return out;

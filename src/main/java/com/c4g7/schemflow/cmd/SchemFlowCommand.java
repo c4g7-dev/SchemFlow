@@ -133,7 +133,7 @@ public class SchemFlowCommand implements CommandExecutor {
                 if (args.length < 2) { sendMM(sender, prefix() + " <grey>Usage:</grey> <gradient:#ff77e9:#ff4fd8:#ff77e9>/SchemFlow upload</gradient> <white><i>id</i></white> <white><i>[-flags] [-update]</i></white> <grey>[-group <i>name</i>] [--confirm]</grey>"); return true; }
                 if (!plugin.getSelection().hasBoth(p.getUniqueId())) { sendMM(sender, prefix() + " <red>Set pos1 and pos2 first.</red>"); return true; }
                 String id = args[1];
-                final com.c4g7.schemflow.we.WeFlags weFlags = (args.length >= 3 && args[2].startsWith("-")) ? com.c4g7.schemflow.we.WeFlags.parse(args[2]) : null;
+                final com.c4g7.schemflow.we.WeFlags weFlags = com.c4g7.schemflow.we.WeFlags.parseArgs(args);
                 String group = getGroupFlag(args);
                 Location a = plugin.getSelection().getPos1(p.getUniqueId());
                 Location b = plugin.getSelection().getPos2(p.getUniqueId());
@@ -167,10 +167,10 @@ public class SchemFlowCommand implements CommandExecutor {
                 String tmpGroup = null;
                 int colon = tmpName.indexOf(':');
                 if (colon > 0) { tmpGroup = tmpName.substring(0, colon); tmpName = tmpName.substring(colon + 1); }
-                final com.c4g7.schemflow.we.WeFlags weFlags = (args.length >= 3 && args[2].startsWith("-")) ? com.c4g7.schemflow.we.WeFlags.parse(args[2]) : null;
+                final com.c4g7.schemflow.we.WeFlags weFlags = com.c4g7.schemflow.we.WeFlags.parseArgs(args);
                 // Use downloadDir if -local flag present, otherwise ephemeral cache
                 final String targetDir;
-                if (weFlags != null && weFlags.local) {
+                if (weFlags.local) {
                     targetDir = plugin.getConfig().getString("downloadDir", "plugins/SchemFlow/schematics");
                 } else {
                     java.nio.file.Path eph = plugin.getDataFolder().toPath().resolve("work").resolve("cache");
@@ -183,12 +183,12 @@ public class SchemFlowCommand implements CommandExecutor {
                     try {
                         Path schemFile = (group == null) ? s3.fetchSchm(name, targetDir) : s3.fetchSchm(name, group, targetDir);
                         org.bukkit.Location at = p.getLocation();
-                        final com.c4g7.schemflow.we.WeFlags flagsFinal = weFlags;
+
                         plugin.getServer().getScheduler().runTask(plugin, () -> {
                             try {
-                                boolean ents = flagsFinal != null && flagsFinal.entities;
-                                boolean ignoreAir = flagsFinal != null && flagsFinal.ignoreAir;
-                                boolean biomes = flagsFinal == null || flagsFinal.biomes;
+                                boolean ents = weFlags.entities;
+                                boolean ignoreAir = weFlags.ignoreAir;
+                                boolean biomes = weFlags.biomes;
                                 var we = com.sk89q.worldedit.WorldEdit.getInstance();
                                 var wePlayer = com.sk89q.worldedit.bukkit.BukkitAdapter.adapt(p);
                                 var local = we.getSessionManager().get(wePlayer);

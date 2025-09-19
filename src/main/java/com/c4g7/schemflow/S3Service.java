@@ -125,7 +125,31 @@ public class S3Service implements AutoCloseable {
         }
     }
 
-    }\n\n    public void uploadSchmOverwrite(Path file, String objectName) throws Exception { uploadSchmOverwrite(file, objectName, defaultGroup); }\n\n    public void uploadSchmOverwrite(Path file, String objectName, String group) throws Exception {\n        ensureValidName(objectName);\n        ensureValidGroup(group);\n        if (!objectName.toLowerCase().endsWith(extension)) objectName = objectName + extension;\n        // Normalize legacy prefix from provided names\n        if (objectName.startsWith(legacySchemPrefix)) objectName = objectName.substring(legacySchemPrefix.length());\n        String objKey = buildObjectKey(objectName, group);\n        // No collision check - overwrite is intended\n        try (InputStream in = Files.newInputStream(file)) {\n            client.putObject(\n                    PutObjectArgs.builder()\n                            .bucket(bucket)\n                            .object(objKey)\n                            .contentType(\"application/octet-stream\")\n                            .stream(in, Files.size(file), -1)\n                            .build()\n            );\n        }\n    }\n\n    public void deleteSchm(String name) throws Exception { deleteSchm(name, defaultGroup); }
+    public void uploadSchmOverwrite(Path file, String objectName) throws Exception { 
+        uploadSchmOverwrite(file, objectName, defaultGroup); 
+    }
+
+    public void uploadSchmOverwrite(Path file, String objectName, String group) throws Exception {
+        ensureValidName(objectName);
+        ensureValidGroup(group);
+        if (!objectName.toLowerCase().endsWith(extension)) objectName = objectName + extension;
+        // Normalize legacy prefix from provided names
+        if (objectName.startsWith(legacySchemPrefix)) objectName = objectName.substring(legacySchemPrefix.length());
+        String objKey = buildObjectKey(objectName, group);
+        // No collision check - overwrite is intended
+        try (InputStream in = Files.newInputStream(file)) {
+            client.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucket)
+                            .object(objKey)
+                            .contentType("application/octet-stream")
+                            .stream(in, Files.size(file), -1)
+                            .build()
+            );
+        }
+    }
+
+    public void deleteSchm(String name) throws Exception { deleteSchm(name, defaultGroup); }
 
     public void deleteSchm(String name, String group) throws Exception {
         ensureValidName(name);
