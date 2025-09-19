@@ -391,7 +391,9 @@ public class SchemFlowCommand implements CommandExecutor {
         "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " reload</gradient> <dark_grey>-</dark_grey> Reload config and services</grey>\n" +
                 "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " provision</gradient> <white><i>world</i></white> <dark_grey>-</dark_grey> Create/load and paste base</grey>\n" +
                 "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " groups</gradient> <dark_grey>-</dark_grey> List all groups</grey>\n" +
-                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " group create</gradient> <white><i>name</i></white> <dark_grey>-</dark_grey> Create group path</grey>\n" +
+                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " group create</gradient> <white><i>name</i></white> <dark_grey>-</dark_grey> Create group</grey>\n" +
+                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " group delete</gradient> <white><i>name</i></white> <dark_grey>-</dark_grey> Delete group (non-default)</grey>\n" +
+                "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " group rename</gradient> <white><i>old new</i></white> <dark_grey>-</dark_grey> Rename group (non-default)</grey>\n" +
                 "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " restore</gradient> <white><i>name</i></white> <grey>[-group <i>dest</i>]</grey> <dark_grey>-</dark_grey> Restore a trashed schematic</grey>\n" +
                 "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " trash</gradient> <dark_grey>-</dark_grey> List trashed schematics</grey>\n" +
                 "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " trash clear</gradient> <grey>--confirm</grey> <dark_grey>-</dark_grey> Permanently clear trash</grey>\n" +
