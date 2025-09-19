@@ -133,6 +133,11 @@ public class SchemFlowTabCompleter implements TabCompleter {
             if ("rename".startsWith(p) && (sender.hasPermission("schemflow.group.rename") || sender.hasPermission("schemflow.admin"))) out.add("rename");
             return out;
         }
+        if (args.length == 2 && "trash".equalsIgnoreCase(args[0])) {
+            if (!sender.hasPermission("schemflow.trash.clear") && !sender.hasPermission("schemflow.admin")) return Collections.emptyList();
+            if ("clear".startsWith(args[1].toLowerCase())) return java.util.Collections.singletonList("clear");
+            return Collections.emptyList();
+        }
         if (args.length == 3 && "group".equalsIgnoreCase(args[0]) && ("delete".equalsIgnoreCase(args[1]) || "rename".equalsIgnoreCase(args[1]))) {
             List<String> out = new ArrayList<>();
             String p = args[2].toLowerCase();
