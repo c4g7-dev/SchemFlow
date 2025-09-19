@@ -212,7 +212,8 @@ public class S3Service implements AutoCloseable {
         if (oldGroup == null || oldGroup.isBlank() || newGroup == null || newGroup.isBlank()) throw new IllegalArgumentException("Both old and new group required");
         ensureValidGroup(oldGroup);
         ensureValidGroup(newGroup);
-        if (oldGroup.equalsIgnoreCase(newGroup)) throw new IllegalArgumentException("Groups are identical");
+    // Allow case-only rename: block only if exactly identical
+    if (oldGroup.equals(newGroup)) throw new IllegalArgumentException("Groups are identical");
         if (oldGroup.equalsIgnoreCase(defaultGroup)) throw new IllegalArgumentException("Cannot rename default group");
         // Ensure new group doesn't already exist (simple heuristic: any object with its prefix)
         String newPrefix = rootDir + "/" + groupPrefix + newGroup + "/";
