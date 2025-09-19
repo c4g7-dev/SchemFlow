@@ -11,7 +11,7 @@ softdepend:
 commands:
   'SchemFlow':
     description: SchemFlow primary command
-    usage: "/SchemFlow <help|list|fetch [group:]name|pos1|pos2|upload id [-flags] [-group name]|paste [group:]name [-flags]|delete [group:]name|restore name [-group dest]|trash [clear --confirm]|undo|redo|cache|reload|provision world|groups|group create name>"
+  usage: "/SchemFlow <help|list|fetch [group:]name|pos1|pos2|upload id [-flags] [-group name]|paste [group:]name [-flags]|delete [group:]name|restore name [-group dest]|trash [clear --confirm]|undo|redo|cache|reload|provision world|groups|group create name|group delete name|group rename old new>"
     aliases: [schem]
 permissions:
   schemflow.admin:
@@ -62,3 +62,9 @@ permissions:
   schemflow.group.create:
     default: op
     description: Create a new group
+  schemflow.group.delete:
+    default: op
+    description: Delete a group and all its schematics (non-default only)
+  schemflow.group.rename:
+    default: op
+    description: Rename a group (non-default only)
