@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/c4g7-dev/SchemFlow?style=for-the-badge&color=brightgreen)](https://github.com/c4g7-dev/SchemFlow/releases)
 [![GitHub Downloads](https://img.shields.io/github/downloads/c4g7-dev/SchemFlow/total?style=for-the-badge&color=blue&label=GitHub%20Downloads)](https://github.com/c4g7-dev/SchemFlow/releases)
 [![Java](https://img.shields.io/badge/Java-21-orange?style=for-the-badge&logo=openjdk)](https://openjdk.org/)
-[![Paper](https://img.shields.io/badge/Paper-1.21+-00ADD8?style=for-the-badge&logo=minecraft)](https://papermc.io/)
+[![Paper](https://img.shields.io/badge/Paper-1.21--1.21.11-00ADD8?style=for-the-badge&logo=minecraft)](https://papermc.io/)
 
 **⚡ Cloud-native schematic manager with local support and lightning-fast tab completion**
 
@@ -114,7 +114,7 @@
 ## 🚀 Quick Start
 
 ### 📋 **Requirements**
-- **Minecraft**: 1.21+ (Paper/Purpur recommended)
+- **Minecraft**: 1.21 – 1.21.11 (Paper/Purpur recommended)
 - **Java**: 21+
 - **WorldEdit**: 7.2.18+ (or FastAsyncWorldEdit)
 
