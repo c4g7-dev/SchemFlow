@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.13 - 2026-06-14
+### Added — On-demand provisioning API (called by reflection from external plugins)
+- `WorldProvisioner.provisionRoundWorld(worldName, group, schematicName, pasteAtOrigin, gamerules)` → `CompletableFuture<World>`: creates a fresh void world, async-fetches the schematic from S3, pastes it (paste-at-origin = original absolute coordinates), applies gamerules, and completes only once the map is fully pasted. Thread-safe and idempotent per world name.
+- `WorldProvisioner.disposeWorld(worldName)` → `CompletableFuture<Void>`: unload (no save) + delete the world folder.
+- `WorldProvisioner.inspect(group, schematicName)` → `SchematicInfo` (dimensions + authored min corner) for callers that paste at a fixed point instead of at origin.
+- `WorldProvisioner.saveSelectionAsMap(author, group, name)` → `CompletableFuture<Void>`: save a player's pos1/pos2 selection to S3 preserving the absolute world origin (map builder).
+- Internals: `WorldEditUtils.readClipboard` / `pasteClipboard` (paste-at-origin or min-at-0,0,0) / `exportCuboidPreserveOrigin`; `SafeIO.deleteRecursively`.
+
 ## 0.5.12 - 2025-09-19
 ### Major Features Added
 - **Local Schematics Support**: New `local:` prefix system for offline schematic usage

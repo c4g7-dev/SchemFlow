@@ -24,6 +24,12 @@
 
 **SchemFlow** revolutionizes schematic management for Minecraft servers by combining cloud-native S3/MinIO storage with local schematic support, delivering unmatched performance and reliability. This open-source plugin eliminates the bottlenecks of traditional workflows while maintaining full compatibility with native WorldEdit formats.
 
+### ⚡ **What's New in v0.5.13**
+- **🔌 Developer API**: Provision and dispose worlds **on demand from your own plugin** — fully async, with a completion signal. Purpose-built for per-round minigame maps.
+- **🎯 Absolute-Origin Paste**: Restore a schematic at its **exact authored coordinates**, so named locations (spawns, corners, regions) stay valid in the freshly created world.
+- **🧱 Map Builder Hook**: Save a `pos1`/`pos2` selection straight to S3 **preserving the absolute origin** for later one-call provisioning.
+- **🧹 One-Call World Teardown**: Unload (no save) and delete an ephemeral world in a single call.
+
 ### ⚡ **What's New in v0.5.12**
 - **🏠 Local Schematic Support**: Work offline with `local:name` syntax for downloaded schematics
 - **⚡ Lightning-Fast Tab Completion**: Smart caching eliminates network delays (90% fewer S3 calls)
@@ -79,6 +85,7 @@
 
 ### 🤖 **Automation & Safety**
 - **Skript integration** with custom syntax
+- **Developer API** for on-demand world provisioning (reflection-friendly)
 - **World provisioning** system for hubs/spawns
 - **Trash & Restore** system with flat storage
 - **Undo/Redo** integration for deletes and pastes
@@ -330,6 +337,40 @@ command /updatebuild <text>:
 
 ---
 
+## 🔌 Developer API
+
+Other plugins can drive SchemFlow **on demand** — provision a fresh world, paste a map at its **exact authored coordinates**, and receive a completion signal — **without a compile-time dependency**. Every entry point lives on `WorldProvisioner` (reachable via `SchemFlowPlugin.getInstance().getProvisioner()`) and is safe to call from any thread; all Bukkit world operations are marshalled to the main thread internally.
+
+| Method | Returns | Purpose |
+|--------|---------|---------|
+| `provisionRoundWorld(world, group, schematic, pasteAtOrigin, gamerules)` | `CompletableFuture<World>` | Create a void world, async-fetch the schematic from S3, paste it, apply gamerules. Completes **only once the map is fully pasted**. Idempotent per world name. |
+| `disposeWorld(world)` | `CompletableFuture<Void>` | Unload (no save) and delete the world folder. |
+| `inspect(group, schematic)` | `SchematicInfo` | Dimensions + authored min corner, for callers that paste at a fixed point. Call off the main thread. |
+| `saveSelectionAsMap(player, group, name)` | `CompletableFuture<Void>` | Save a `pos1`/`pos2` selection to S3 **preserving the absolute origin** (map builder). |
+
+> **Paste-at-origin** (`pasteAtOrigin = true`) restores every block at the coordinate it was authored at, so absolute named locations stay valid in the new world. This requires maps saved via `saveSelectionAsMap` (which preserves the absolute origin); schematics created with `/SchemFlow upload` paste relatively and should be re-exported if you need absolute placement.
+
+### Reflection example (zero compile-time dependency)
+
+```java
+Object plugin = Class.forName("com.c4g7.schemflow.SchemFlowPlugin")
+        .getMethod("getInstance").invoke(null);
+Object prov = plugin.getClass().getMethod("getProvisioner").invoke(plugin);
+
+CompletableFuture<?> future = (CompletableFuture<?>) prov.getClass()
+        .getMethod("provisionRoundWorld", String.class, String.class, String.class, boolean.class, java.util.Map.class)
+        .invoke(prov, "round_42", "blockparty", "W-BLOCKPARTY-regular-Island", true, null);
+
+future.whenComplete((world, error) -> {
+    if (error != null) { /* handle failure */ return; }
+    // (org.bukkit.World) world is fully pasted — safe to teleport players in
+});
+```
+
+The method names and signatures above are a **stable contract** for reflection callers — they will not change without a major-version bump.
+
+---
+
 ## ⚙️ Advanced Configuration
 
 <details>
@@ -403,7 +444,7 @@ cd SchemFlow
 mvn clean package
 ```
 
-**Output**: `target/SchemFlow-v0.5.12-all.jar`
+**Output**: `target/SchemFlow-0.5.13-all.jar`
 
 ### **Development Setup**
 - **IDE**: IntelliJ IDEA or Visual Studio Code with Java extensions
@@ -420,7 +461,7 @@ src/main/java/com/c4g7/schemflow/
 ├── skript/                        # Skript integration
 ├── util/                          # Utilities (SafeIO, ZipUtils)
 ├── we/                           # WorldEdit integration
-└── world/                        # World provisioning
+└── world/                        # World provisioning + on-demand API (WorldProvisioner, SchematicInfo)
 ```
 
 ---
@@ -511,10 +552,10 @@ SchemFlow is released under the **Apache-2.0 License** — see [LICENSE](LICENSE
 
 <div align="center">
 
-**🌊 SchemFlow v0.5.12 - Now with local support and lightning-fast performance**
+**🌊 SchemFlow v0.5.13 — On-demand world provisioning API for build & game networks**
 
 Made with ❤️ by c4g7-dev and the Minecraft community
 
-[⭐ Star us on GitHub](https://github.com/c4g7-dev/SchemFlow) • [🚀 Download v0.5.12](https://github.com/c4g7-dev/SchemFlow/releases/latest) • [💬 Join Discord](https://discord.gg/eNNbqS4N2H)
+[⭐ Star us on GitHub](https://github.com/c4g7-dev/SchemFlow) • [🚀 Download v0.5.13](https://github.com/c4g7-dev/SchemFlow/releases/latest) • [💬 Join Discord](https://discord.gg/eNNbqS4N2H)
 
 </div>
