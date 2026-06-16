@@ -91,7 +91,8 @@ public class WorldEditUtils {
     }
 
     /**
-     * Paste a preloaded clipboard into a world. MUST run on the server main thread.
+     * Paste a preloaded clipboard into a world. With FastAsyncWorldEdit this is safe (and strongly
+     * preferred) to call OFF the main thread; with plain WorldEdit it must run on the main thread.
      *
      * @param atOrigin true  &rarr; paste at the clipboard's stored origin (WorldEdit {@code //paste -o}),
      *                          so every block lands at its authored ABSOLUTE coordinate; use this for

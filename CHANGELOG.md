@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.5.14 - 2026-06-16
+### Fixed — Round provisioning no longer freezes the server (critical)
+- `provisionRoundWorld` previously pasted the schematic **synchronously on the main thread** with
+  `ignoreAir=false`, and created the world with a generator that triggered a **blocking spawn-point
+  search + multi-second "Preparing spawn area" pass**. On a large map this dropped TPS and could trip
+  Paper's watchdog ("server stopped responding") even though nothing changed in the caller. Verified on
+  Paper 1.21.11 + FAWE: a 95k-block map went from a **~2900 ms main-thread stall (+ watchdog dump)** to
+  **~110 ms**, with no lag warnings.
+  - Paste now runs **off the main thread under FastAsyncWorldEdit** (falls back to the main thread only
+    if plain WorldEdit is installed); the future still completes on the main thread so callers can
+    safely teleport in `whenComplete`. Round pastes use `ignoreAir=true` (a fresh world is all void).
+  - `EmptyChunkGenerator` now provides a **fixed spawn location** and disables all vanilla generation
+    phases, so world creation no longer blocks hunting for solid ground. "Preparing spawn area" drops
+    from seconds to ~1 ms.
+### Added
+- `/SchemFlow savemap <world> <x1 y1 z1> <x2 y2 z2> <group> <name>` and
+  `WorldProvisioner.saveRegionAsMap(pos1, pos2, group, name)` → `CompletableFuture<Void>`: headless,
+  coordinate-driven map capture preserving the absolute origin (auto-loads a world folder for capture
+  and unloads it afterward), for batch-converting pre-built map worlds without an in-game selection.
+
 ## 0.5.13 - 2026-06-14
 ### Added — On-demand provisioning API (called by reflection from external plugins)
 - `WorldProvisioner.provisionRoundWorld(worldName, group, schematicName, pasteAtOrigin, gamerules)` → `CompletableFuture<World>`: creates a fresh void world, async-fetches the schematic from S3, pastes it (paste-at-origin = original absolute coordinates), applies gamerules, and completes only once the map is fully pasted. Thread-safe and idempotent per world name.

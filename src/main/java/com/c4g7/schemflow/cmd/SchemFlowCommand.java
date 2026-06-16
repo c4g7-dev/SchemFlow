@@ -182,6 +182,45 @@ public class SchemFlowCommand implements CommandExecutor {
                     }
                 }
             }
+            case "savemap" -> {
+                // Headless, coord-driven save of a region in a world → S3 (origin preserved).
+                // /SchemFlow savemap <world> <x1> <y1> <z1> <x2> <y2> <z2> <group> <name>
+                // For converting pre-built map worlds to maps without an in-game selection.
+                // If <world> isn't loaded but its folder exists on disk, it is auto-loaded for the
+                // capture and unloaded afterwards (keeps the folder) — so a conversion server can
+                // batch-convert staged map folders headlessly.
+                if (!check(sender, "schemflow.upload")) return true;
+                if (args.length < 10) { sendMM(sender, prefix() + " <grey>Usage:</grey> <aqua>/SchemFlow savemap</aqua> <white><i>world x1 y1 z1 x2 y2 z2 group name</i></white>"); return true; }
+                org.bukkit.World w = plugin.getServer().getWorld(args[1]);
+                final boolean autoLoaded;
+                if (w == null) {
+                    java.io.File folder = new java.io.File(plugin.getServer().getWorldContainer(), args[1]);
+                    if (!folder.isDirectory()) { sendMM(sender, prefix() + " <red>World not loaded and no folder on disk: </red><white>" + args[1] + "</white>"); return true; }
+                    sendMM(sender, prefix() + " <grey>Loading world folder </grey><aqua>" + args[1] + "</aqua><grey>…</grey>");
+                    w = plugin.getServer().createWorld(new org.bukkit.WorldCreator(args[1]));
+                    if (w == null) { sendMM(sender, prefix() + " <red>Failed to load world folder: </red><white>" + args[1] + "</white>"); return true; }
+                    autoLoaded = true;
+                } else {
+                    autoLoaded = false;
+                }
+                final org.bukkit.World world = w;
+                try {
+                    Location a = new Location(world, Double.parseDouble(args[2]), Double.parseDouble(args[3]), Double.parseDouble(args[4]));
+                    Location b = new Location(world, Double.parseDouble(args[5]), Double.parseDouble(args[6]), Double.parseDouble(args[7]));
+                    String group = args[8], name = args[9];
+                    sendMM(sender, prefix() + " <grey>Saving region of </grey><aqua>" + args[1] + "</aqua><grey> → </grey><aqua>" + group + "/" + name + "</aqua><grey>…</grey>");
+                    plugin.getProvisioner().saveRegionAsMap(a, b, group, name).whenComplete((v, err) -> {
+                            sendMM(sender, prefix() + (err == null
+                                    ? " <green>Saved map </green><aqua>" + group + "/" + name + "</aqua>"
+                                    : " <red>Save failed: </red><white>" + err.getMessage() + "</white>"));
+                            if (autoLoaded) plugin.getServer().getScheduler().runTask(plugin, () ->
+                                    plugin.getServer().unloadWorld(world, false)); // keep folder, free memory
+                    });
+                } catch (NumberFormatException ex) {
+                    if (autoLoaded) plugin.getServer().unloadWorld(world, false);
+                    sendMM(sender, prefix() + " <red>Coords must be numbers.</red>");
+                }
+            }
             case "pos1" -> {
                 if (!check(sender, "schemflow.pos1")) return true;
                 if (!(sender instanceof Player p)) { sendMM(sender, prefix() + " <red>Player only.</red>"); return true; }
