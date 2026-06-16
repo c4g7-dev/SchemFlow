@@ -147,7 +147,9 @@ public class WorldProvisioner {
      *    otherwise pastes the schematic's min corner at world (0,0,0)
      *  - applies {@code gamerules} (or sane game defaults when null)
      *  - completes the future with the loaded World on success / exceptionally on failure
-     * Safe to call from ANY thread; all Bukkit world ops are marshalled to the main thread internally.
+     * Safe to call from ANY thread. World creation and future-completion run on the main thread; the
+     * S3 fetch and the (FAWE) paste run OFF it, so a large paste never blocks the server tick loop.
+     * With plain WorldEdit (no FAWE) the paste falls back to the main thread.
      * Idempotent: if {@code worldName} already exists, completes immediately with it.
      *
      * <p>NOTE: absolute placement only works for schematics saved with absolute origin (see
@@ -181,22 +183,29 @@ public class WorldProvisioner {
                 world.setTime(6000L);
                 world.setStorm(false);
                 world.setThundering(false);
-                // S3 fetch + schematic decode OFF the main thread, then paste back ON the main thread.
+                // S3 fetch + schematic decode + paste all run OFF the main thread. With FastAsyncWorldEdit
+                // the paste is async-safe; running it on the main thread would block the tick loop and, for
+                // a large map into a fresh world, trip Paper's watchdog. Plain WorldEdit has no async edits,
+                // so it falls back to the main thread.
                 plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                     try {
                         Path schm = fetchRoundSchematic(schematicName, group);
                         com.sk89q.worldedit.extent.clipboard.Clipboard clipboard = WorldEditUtils.readClipboard(schm);
-                        plugin.getServer().getScheduler().runTask(plugin, () -> {
-                            try {
-                                WorldEditUtils.pasteClipboard(world, clipboard, pasteAtOrigin, false, true, true);
-                                plugin.getLogger().info("Provisioned round world '" + worldName + "' from "
-                                        + (group == null || group.isBlank() ? "" : group + "/") + schematicName
-                                        + (pasteAtOrigin ? " (paste-at-origin)" : " (min at 0,0,0)"));
-                                future.complete(world);
-                            } catch (Exception ex) {
-                                future.completeExceptionally(ex);
-                            }
-                        });
+                        if (asyncPasteSupported()) {
+                            pasteRoundMap(world, clipboard, pasteAtOrigin, worldName, group, schematicName);
+                            // hop to the main thread only to complete the future, so the caller's
+                            // whenComplete callback runs on the main thread (safe to teleport players).
+                            plugin.getServer().getScheduler().runTask(plugin, () -> future.complete(world));
+                        } else {
+                            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                                try {
+                                    pasteRoundMap(world, clipboard, pasteAtOrigin, worldName, group, schematicName);
+                                    future.complete(world);
+                                } catch (Exception ex) {
+                                    future.completeExceptionally(ex);
+                                }
+                            });
+                        }
                     } catch (Exception ex) {
                         future.completeExceptionally(ex);
                     }
@@ -307,6 +316,46 @@ public class WorldProvisioner {
         return future;
     }
 
+    /**
+     * Save an explicit cuboid region (two corner Locations in a loaded world) as `group/name.schem` to
+     * S3, PRESERVING the absolute world origin (so {@link #provisionRoundWorld}(…, pasteAtOrigin=true)
+     * lands it back at the same absolute coords). Same as {@link #saveSelectionAsMap} but coord-driven —
+     * no player/selection needed, so a converter (e.g. importing pre-built map worlds) can call it
+     * headlessly for many maps. Both corners must be in the same loaded world. Overwrites any existing
+     * object of that name. Safe to call from any thread; world read on main, S3 upload off-thread.
+     */
+    public java.util.concurrent.CompletableFuture<Void> saveRegionAsMap(
+            org.bukkit.Location pos1, org.bukkit.Location pos2, String group, String name) {
+        java.util.concurrent.CompletableFuture<Void> future = new java.util.concurrent.CompletableFuture<>();
+        if (name == null || name.isBlank()) { future.completeExceptionally(new IllegalArgumentException("name is required")); return future; }
+        if (pos1 == null || pos2 == null || pos1.getWorld() == null || pos1.getWorld() != pos2.getWorld()) {
+            future.completeExceptionally(new IllegalArgumentException("pos1 and pos2 must be set in the same loaded world"));
+            return future;
+        }
+        runOnMain(() -> {
+            try {
+                final Path tmp = Files.createTempFile("schemflow-map-", s3.getExtension());
+                WorldEditUtils.exportCuboidPreserveOrigin(pos1, pos2, tmp); // origin=(0,0,0) -> absolute coords preserved
+                plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                    try {
+                        s3.uploadSchmOverwrite(tmp, name, group);
+                        plugin.refreshSchematicCacheAsync();
+                        plugin.getLogger().info("Saved region as map '"
+                                + (group == null || group.isBlank() ? "" : group + "/") + name + "'");
+                        future.complete(null);
+                    } catch (Exception ex) {
+                        future.completeExceptionally(ex);
+                    } finally {
+                        try { Files.deleteIfExists(tmp); } catch (Exception ignore) {}
+                    }
+                });
+            } catch (Throwable t) {
+                future.completeExceptionally(t);
+            }
+        });
+        return future;
+    }
+
     // --- internal helpers for the on-demand API ---
 
     private void runOnMain(Runnable r) {
@@ -318,6 +367,10 @@ public class WorldProvisioner {
         WorldCreator wc = new WorldCreator(name);
         wc.generator(new EmptyChunkGenerator());
         wc.generateStructures(false);
+        // NB: we deliberately do NOT call WorldCreator.keepSpawnInMemory(...)/keepSpawnLoaded(...) here —
+        // those signatures drift across 1.21.x (keepSpawnInMemory(boolean) throws NoSuchMethodError on
+        // 1.21.11). It isn't needed: EmptyChunkGenerator's fixed spawn + disabled generation already make
+        // Paper's "Preparing spawn area" pass complete in ~1ms instead of multiple seconds.
         return Bukkit.createWorld(wc);
     }
 
@@ -327,6 +380,24 @@ public class WorldProvisioner {
                 ? ephemeral.toString()
                 : plugin.getConfig().getString("downloadDir", "plugins/SchemFlow/schematics");
         return s3.fetchSchm(schematicName, group, dest);
+    }
+
+    /**
+     * Paste a round map. {@code ignoreAir = true}: a freshly provisioned world is all-void, so air blocks
+     * are redundant; skipping them makes a typical (mostly hollow) map paste far cheaper.
+     */
+    private void pasteRoundMap(World world, com.sk89q.worldedit.extent.clipboard.Clipboard clipboard,
+                               boolean pasteAtOrigin, String worldName, String group, String schematicName) throws Exception {
+        WorldEditUtils.pasteClipboard(world, clipboard, pasteAtOrigin, true, true, true);
+        plugin.getLogger().info("Provisioned round world '" + worldName + "' from "
+                + (group == null || group.isBlank() ? "" : group + "/") + schematicName
+                + (pasteAtOrigin ? " (paste-at-origin)" : " (min at 0,0,0)"));
+    }
+
+    /** True when FastAsyncWorldEdit is present, i.e. pastes can run safely off the main thread. */
+    private boolean asyncPasteSupported() {
+        var pm = plugin.getServer().getPluginManager();
+        return pm.getPlugin("FastAsyncWorldEdit") != null || pm.getPlugin("FAWE") != null;
     }
 
     private Map<String, Object> defaultRoundGamerules() {
@@ -345,5 +416,23 @@ public class WorldProvisioner {
         return m;
     }
 
-    public static class EmptyChunkGenerator extends ChunkGenerator { }
+    // A ChunkGenerator with NO overrides falls through to VANILLA terrain generation on
+    // modern Paper (1.18+). Round worlds must be pure VOID so the pasted schematic is the
+    // only geometry — otherwise the map sits on top of random generated terrain. Disabling
+    // every generation phase yields an empty (void) chunk.
+    public static class EmptyChunkGenerator extends ChunkGenerator {
+        // Provide a FIXED spawn so CraftBukkit skips the vanilla PlayerSpawnFinder search. In a void
+        // world that search does a BLOCKING, synchronous chunk load on the main thread hunting for
+        // solid ground that never exists — multi-second stall / watchdog risk on world creation.
+        @Override
+        public org.bukkit.Location getFixedSpawnLocation(World world, java.util.Random random) {
+            return new org.bukkit.Location(world, 0, 64, 0);
+        }
+        @Override public boolean shouldGenerateNoise() { return false; }
+        @Override public boolean shouldGenerateSurface() { return false; }
+        @Override public boolean shouldGenerateCaves() { return false; }
+        @Override public boolean shouldGenerateDecorations() { return false; }
+        @Override public boolean shouldGenerateMobs() { return false; }
+        @Override public boolean shouldGenerateStructures() { return false; }
+    }
 }
