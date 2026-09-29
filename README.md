@@ -24,6 +24,9 @@
 
 **SchemFlow** revolutionizes schematic management for Minecraft servers by combining cloud-native S3/MinIO storage with local schematic support, delivering unmatched performance and reliability. This open-source plugin eliminates the bottlenecks of traditional workflows while maintaining full compatibility with native WorldEdit formats.
 
+### ⚡ **What's New in v0.5.15**
+- **💡 Lit Round Maps**: provisioned maps no longer come out dark. SchemFlow relights the pasted chunks through the server's light engine and `provisionRoundWorld` completes only once the map is lit, so a world unloaded or copied right after provisioning (e.g. staged as a map source) keeps its light. Configurable under `lighting:` in `config.yml`.
+
 ### ⚡ **What's New in v0.5.14**
 - **🚀 Lag-Free Round Provisioning**: `provisionRoundWorld` now pastes **off the main thread** (under FastAsyncWorldEdit) and creates void worlds without the costly spawn search — a large map went from a **~2.9 s main-thread freeze (watchdog risk)** to **~110 ms** on Paper 1.21.11.
 - **🗺️ Headless Map Capture**: `/SchemFlow savemap` + `saveRegionAsMap(...)` save a region of any world (auto-loading its folder) to S3 with absolute origin preserved — batch-convert pre-built maps without an in-game selection.
@@ -143,6 +146,12 @@ storage:
 
 # Performance settings
 cacheRefreshSeconds: 60           # Auto-refresh cache interval
+
+# Light recalculation after pastes (Paper 1.21+)
+lighting:
+  relightAfterPaste: true         # relight pasted chunks; round provisioning waits for it
+  maxWaitSeconds: 60              # longest provisioning waits before handing the world over
+  chunksPerTick: 32               # chunk loads per tick for the relight (main-thread budget)
 ```
 
 **Test your setup**: `/SchemFlow list`

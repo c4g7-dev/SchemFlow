@@ -22,6 +22,21 @@ fetchOnStart: ""
 # Schematic cache auto-refresh interval (seconds). Set 0 to disable periodic refresh.
 cacheRefreshSeconds: 30
 
+# Light recalculation after a paste.
+# FastAsyncWorldEdit relights a paste in the background and nobody is told when it finishes. A round world
+# that is unloaded or copied right after its paste (Conduit stages the provisioned world as the map source)
+# gets saved before that relight is done: the map has all its blocks but no light, so players see it dark
+# everywhere except right next to torches and lamps. SchemFlow relights the pasted chunks through the
+# server's light engine (Paper 1.21+) and round provisioning waits for it before it reports the world ready.
+lighting:
+  # Relight the pasted area after every SchemFlow paste. Set false to leave lighting to (FA)WE alone.
+  relightAfterPaste: true
+  # Longest a round provisioning waits for the relight before handing the world over anyway.
+  maxWaitSeconds: 60
+  # Chunks loaded per server tick for the relight. Each costs about half a millisecond of main-thread time
+  # (the light math itself runs off the main thread); lower it on a busy server, raise it to relight faster.
+  chunksPerTick: 32
+
 # Provisioning (WDB replacement)
 provisionOnStartup: false
 worlds:

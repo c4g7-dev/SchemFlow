@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.5.15 - 2026-09-30
+### Fixed — Provisioned round maps came out dark
+- Maps provisioned with `provisionRoundWorld` were dark everywhere except right next to light sources.
+  FastAsyncWorldEdit relights a paste in the background, but the future completed as soon as the blocks
+  were pasted; Conduit then unloaded the world and copied its folder as the game map while that relight was
+  still running (FAWE logged `Unable to find org.bukkit.World instance ... Is it loaded?`). The copy had
+  every block but no light, and the client only lights blocks near light sources on its own.
+- Every SchemFlow paste now relights the pasted chunks (plus a one-chunk border) through the server's light
+  engine (Moonrise/Starlight, Paper 1.21+). Off the main thread the paste waits for the relight, so
+  `provisionRoundWorld` completes only once the map is lit. The light math runs on the light engine's
+  worker threads; the main thread only loads/holds the chunks, in batches.
+- Verified on Purpur 26.2 + FAWE 2.15.4 and Paper 1.21.11 by reproducing Conduit's flow (provision, then
+  unload + copy the world at once): before, the copy had no light at all (0/900 shaded cells correct);
+  after, it matches vanilla lighting (899/900, the remaining cell being a light source block itself). A
+  ~960-chunk map relights in 2–4 s.
+### Added
+- `lighting:` section in `config.yml` (written into existing configs on startup):
+  `relightAfterPaste` (default `true`), `maxWaitSeconds` (default `60`, how long provisioning waits for the
+  relight before handing the world over anyway), `chunksPerTick` (default `32`, chunk loads per tick).
+
 ## 0.5.14 - 2026-06-16
 ### Fixed — Round provisioning no longer freezes the server (critical)
 - `provisionRoundWorld` previously pasted the schematic **synchronously on the main thread** with

@@ -386,6 +386,8 @@ public class SchemFlowCommand implements CommandExecutor {
                                 var we = com.sk89q.worldedit.WorldEdit.getInstance();
                                 var wePlayer = com.sk89q.worldedit.bukkit.BukkitAdapter.adapt(p);
                                 var local = we.getSessionManager().get(wePlayer);
+                                var to = com.sk89q.worldedit.math.BlockVector3.at(at.getBlockX(), at.getBlockY(), at.getBlockZ());
+                                com.sk89q.worldedit.regions.Region pasted;
                                 try (var edit = local.createEditSession(wePlayer)) {
                                     edit.setReorderMode(com.sk89q.worldedit.EditSession.ReorderMode.MULTI_STAGE);
                                     var format = com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats.findByFile(schemFile.toFile());
@@ -394,16 +396,18 @@ public class SchemFlowCommand implements CommandExecutor {
                                         var clipboard = reader.read();
                                         var op = new com.sk89q.worldedit.session.ClipboardHolder(clipboard)
                                                 .createPaste(edit)
-                                                .to(com.sk89q.worldedit.math.BlockVector3.at(at.getBlockX(), at.getBlockY(), at.getBlockZ()))
+                                                .to(to)
                                                 .ignoreAirBlocks(ignoreAir)
                                                 .copyEntities(ents)
                                                 .copyBiomes(biomes)
                                                 .build();
                                         com.sk89q.worldedit.function.operation.Operations.complete(op);
+                                        pasted = com.c4g7.schemflow.we.PasteLighting.pastedRegion(edit.getWorld(), clipboard, to);
                                     }
                                     // Ensure WorldEdit history captures this edit for //undo
                                     local.remember(edit);
                                 }
+                                com.c4g7.schemflow.we.PasteLighting.afterPaste(plugin, at.getWorld(), pasted);
                                 sendMM(p, prefix() + " <green>Pasted schematic.</green> <grey>Use</grey> <aqua>//undo</aqua> <grey>or</grey> <aqua>/SchemFlow undo</aqua> <grey>to revert.</grey>");
                             } catch (Exception ex) {
                                 sendMM(p, prefix() + " <red>Paste failed:</red> <grey>" + ex.getMessage() + "</grey>");
