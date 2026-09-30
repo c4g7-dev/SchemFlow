@@ -124,6 +124,10 @@ public class SchemFlowPlugin extends JavaPlugin {
             if (!c.contains("provisionOnStartup")) { c.set("provisionOnStartup", false); updated = true; }
             if (!c.contains("storage.rootDir")) { c.set("storage.rootDir", "FlowStack/SchemFlow"); updated = true; }
             if (!c.contains("storage.defaultGroup")) { c.set("storage.defaultGroup", "default"); updated = true; }
+            // contains(path, true): ignore the jar's defaults, so the new keys get written into older configs
+            if (!c.contains("lighting.relightAfterPaste", true)) { c.set("lighting.relightAfterPaste", true); updated = true; }
+            if (!c.contains("lighting.maxWaitSeconds", true)) { c.set("lighting.maxWaitSeconds", 60); updated = true; }
+            if (!c.contains("lighting.chunksPerTick", true)) { c.set("lighting.chunksPerTick", 32); updated = true; }
             if (updated) saveConfig();
         } catch (Throwable ignored) {}
         this.audiences = net.kyori.adventure.platform.bukkit.BukkitAudiences.create(this);

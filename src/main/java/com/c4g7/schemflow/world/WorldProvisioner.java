@@ -146,6 +146,8 @@ public class WorldProvisioner {
      *  - pastes it at its ORIGINAL absolute position when {@code pasteAtOrigin} (WorldEdit {@code -o});
      *    otherwise pastes the schematic's min corner at world (0,0,0)
      *  - applies {@code gamerules} (or sane game defaults when null)
+     *  - relights the pasted map and waits for it (see {@code lighting.*} in config.yml), so a caller may
+     *    unload/copy the world as soon as the future completes and still get a lit map
      *  - completes the future with the loaded World on success / exceptionally on failure
      * Safe to call from ANY thread. World creation and future-completion run on the main thread; the
      * S3 fetch and the (FAWE) paste run OFF it, so a large paste never blocks the server tick loop.
@@ -384,7 +386,9 @@ public class WorldProvisioner {
 
     /**
      * Paste a round map. {@code ignoreAir = true}: a freshly provisioned world is all-void, so air blocks
-     * are redundant; skipping them makes a typical (mostly hollow) map paste far cheaper.
+     * are redundant; skipping them makes a typical (mostly hollow) map paste far cheaper. Off the main
+     * thread the paste also waits for the map to be relit (see {@link com.c4g7.schemflow.we.PasteLighting}),
+     * so callers that unload or copy the world as soon as the future completes get a lit map.
      */
     private void pasteRoundMap(World world, com.sk89q.worldedit.extent.clipboard.Clipboard clipboard,
                                boolean pasteAtOrigin, String worldName, String group, String schematicName) throws Exception {

@@ -1,5 +1,6 @@
 package com.c4g7.schemflow.we;
 
+import com.c4g7.schemflow.SchemFlowPlugin;
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
@@ -66,18 +67,21 @@ public class WorldEditUtils {
         try (var reader = format.getReader(Files.newInputStream(schemFile))) {
             var clipboard = reader.read();
             World weWorld = BukkitAdapter.adapt(at.getWorld());
+            BlockVector3 to = BlockVector3.at(at.getBlockX(), at.getBlockY(), at.getBlockZ());
             try (EditSession editSession = WorldEdit.getInstance().newEditSession(weWorld)) {
                 editSession.setReorderMode(com.sk89q.worldedit.EditSession.ReorderMode.MULTI_STAGE);
                 var op = new com.sk89q.worldedit.session.ClipboardHolder(clipboard)
                         .createPaste(editSession)
-                        .to(BlockVector3.at(at.getBlockX(), at.getBlockY(), at.getBlockZ()))
+                        .to(to)
                         .ignoreAirBlocks(ignoreAir)
                         .copyEntities(copyEntities)
                         .copyBiomes(copyBiomes)
                         .build();
                 Operations.complete(op);
-                return true;
             }
+            // after close(): FAWE only writes the blocks when the session is flushed
+            PasteLighting.afterPaste(SchemFlowPlugin.getInstance(), at.getWorld(), PasteLighting.pastedRegion(weWorld, clipboard, to));
+            return true;
         }
     }
 
@@ -93,6 +97,9 @@ public class WorldEditUtils {
     /**
      * Paste a preloaded clipboard into a world. With FastAsyncWorldEdit this is safe (and strongly
      * preferred) to call OFF the main thread; with plain WorldEdit it must run on the main thread.
+     *
+     * <p>The pasted chunks are then relit per the {@code lighting.*} config (see {@link PasteLighting});
+     * called off the main thread, this only returns once that relight is done.
      *
      * @param atOrigin true  &rarr; paste at the clipboard's stored origin (WorldEdit {@code //paste -o}),
      *                          so every block lands at its authored ABSOLUTE coordinate; use this for
@@ -117,6 +124,9 @@ public class WorldEditUtils {
                     .build();
             Operations.complete(op);
         }
+        // after close(): FAWE only writes the blocks when the session is flushed. Off the main thread this
+        // waits for the relight, so the paste returns with the map already lit.
+        PasteLighting.afterPaste(SchemFlowPlugin.getInstance(), bukkitWorld, PasteLighting.pastedRegion(weWorld, clipboard, to));
     }
 
     /**
