@@ -24,6 +24,10 @@
 
 **SchemFlow** revolutionizes schematic management for Minecraft servers by combining cloud-native S3/MinIO storage with local schematic support, delivering unmatched performance and reliability. This open-source plugin eliminates the bottlenecks of traditional workflows while maintaining full compatibility with native WorldEdit formats.
 
+### ⚡ **What's New in v0.5.16**
+- **🌸 Biomes Travel With The Map**: map exports now store biomes and provisioned rounds paste them back, so grass, water and sky colours and snow match the original. Re-export maps made before 0.5.16 to get their biomes; a map without biomes leaves the world's own untouched.
+- **🪔 Display-Entity Models Survive**: models built from block/item/text displays riding a root entity no longer vanish. FastAsyncWorldEdit pasted only empty copies of the riders; SchemFlow now spawns every vehicle with its passengers mounted, and restores existing schematics as they are. Configurable under `maps:` in `config.yml`.
+
 ### ⚡ **What's New in v0.5.15**
 - **💡 Lit Round Maps**: provisioned maps no longer come out dark. SchemFlow relights the pasted chunks through the server's light engine and `provisionRoundWorld` completes only once the map is lit, so a world unloaded or copied right after provisioning (e.g. staged as a map source) keeps its light. Configurable under `lighting:` in `config.yml`.
 
@@ -152,6 +156,12 @@ lighting:
   relightAfterPaste: true         # relight pasted chunks; round provisioning waits for it
   maxWaitSeconds: 60              # longest provisioning waits before handing the world over
   chunksPerTick: 32               # chunk loads per tick for the relight (main-thread budget)
+
+# Map exports and round pastes
+maps:
+  copyBiomes: true                # store biomes in exports and paste them back
+  restorePassengers: true         # rebuild display-entity models (entities riding other entities)
+  entitiesPerTick: 128            # entities spawned per tick while restoring them (main-thread budget)
 ```
 
 **Test your setup**: `/SchemFlow list`

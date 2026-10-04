@@ -1,5 +1,50 @@
 # Changelog
 
+## 0.5.16 - 2026-10-04
+### Fixed — Provisioned maps lost their biomes
+- Map exports (`saveRegionAsMap`, `saveSelectionAsMap`, `/SchemFlow savemap`, `/SchemFlow upload`) never asked
+  WorldEdit to copy biomes (`ForwardExtentCopy` leaves them out unless told to), so no schematic carried any and
+  a provisioned map took the biomes of the empty world it was pasted into: wrong grass, foliage, water and sky
+  colours, rain instead of snow. Exports now store every block's biome (3D) and round pastes write them back.
+- Only maps exported with 0.5.16 or later carry biomes. **Maps exported before, including maps imported into S3,
+  must be re-exported to get their biomes back**; provisioning one logs that its schematic stores no biomes.
+- A schematic without biomes leaves the target world's biomes untouched, exactly as before (biomes are pasted
+  only when the schematic has them).
+
+### Fixed — Display-entity models vanished from provisioned maps
+- Models built from block/item/text displays riding a root entity (marker, interaction, another display) were
+  missing in game. FastAsyncWorldEdit writes such a stack twice: the root keeps every passenger, complete, in its
+  `Passengers` list, and each passenger is also written as a top-level entry without UUID and without any data
+  (FAWE reads entities with `Entity#save`, which writes nothing for an entity that is riding). On paste FAWE loads
+  the root without its passengers and spawns the empty entries as default entities: block displays of air, item
+  displays without an item, blank text displays. The entity count looked right, the models were gone. Ruled out
+  with tests: entity loading (a headless export of a world loaded in the same tick captured every entity),
+  coordinates (top-level entities land exactly), 26.x entity NBT, and saving before the world is copied.
+- Pastes now spawn each vehicle with its passengers mounted, from the vehicle's own NBT through Paper's entity
+  API, and skip the duplicate copies, so the entity count matches the source. Existing schematics are restored as
+  they are, no re-export needed. The spawning runs on the main thread in batches (`maps.entitiesPerTick`), after
+  the blocks are in and before `provisionRoundWorld` completes, so a world copied right away keeps its models.
+  Exports no longer write the empty copies.
+- Verified on Purpur 26.2 + FAWE 2.15.4 and Paper 1.21.11 + FAWE 2.15.4 through the real API and MinIO,
+  reproducing Conduit's flow (provision, then save + unload + copy the world folder at once, load the copy): a
+  scene of 45 entities (3 display models with 32 riders, one of them two deep; standalone displays including a
+  textured player head and a `custom_model_data` item; an armor stand and an item frame) and 8 biomes laid out in
+  3D. Before: 10/45 entities intact (all 32 riders turned into empty displays, the 3 roots without passengers),
+  0/10240 biome cells right. After: 45/45 entities back, 44 identical in every compared field (position, rotation,
+  transformation, block/item/text, glow, brightness, billboard, view range, riding) and the 45th differing only in
+  its interpolation start delay, which vanilla's own save drops; 10240/10240 biome cells right, also on disk in the
+  copy. The same holds for a headless export, a paste with `pasteAtOrigin=false` and an old 0.5.15 schematic
+  (models restored, the world's biomes unchanged). A production-sized map (46 models, 1702 displays): 0.5.15
+  brought back 0 riding entities and 1104 empty displays, 0.5.16 brings back all 1702 with 1656 riding, for
+  35–85 ms of main-thread work (about 140 ms on the first paste after a restart) spread over ~14 ticks; the
+  NBT is parsed off the main thread.
+### Changed
+- `/SchemFlow upload` stores biomes by default, as the `-b` flag was documented (also with `-b`); pastes write
+  them only when the schematic has them.
+### Added
+- `maps:` section in `config.yml` (written into existing configs on startup): `copyBiomes` (default `true`),
+  `restorePassengers` (default `true`), `entitiesPerTick` (default `128`, entities spawned per tick).
+
 ## 0.5.15 - 2026-09-30
 ### Fixed — Provisioned round maps came out dark
 - Maps provisioned with `provisionRoundWorld` were dark everywhere except right next to light sources.

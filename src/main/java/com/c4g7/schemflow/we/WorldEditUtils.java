@@ -35,10 +35,12 @@ public class WorldEditUtils {
 
         com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard clipboard = new com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard(region);
         try (EditSession editSession = WorldEdit.getInstance().newEditSession(weWorld)) {
-            ForwardExtentCopy copy = new ForwardExtentCopy(editSession, region, clipboard, region.getMinimumPoint());
+            ForwardExtentCopy copy = new ForwardExtentCopy(editSession, region, MapEntities.exportTarget(clipboard), region.getMinimumPoint());
             boolean copyEnts = flags != null ? flags.entities : true;
             copy.setCopyingEntities(copyEnts);
             copy.setRemovingEntities(false);
+            // ForwardExtentCopy leaves biomes out unless asked: stored by default (maps.copyBiomes), or with -b
+            copy.setCopyingBiomes((flags != null && flags.biomes) || MapEntities.copyBiomes(SchemFlowPlugin.getInstance().getConfig()));
             Operations.complete(copy);
         }
 
@@ -68,19 +70,23 @@ public class WorldEditUtils {
             var clipboard = reader.read();
             World weWorld = BukkitAdapter.adapt(at.getWorld());
             BlockVector3 to = BlockVector3.at(at.getBlockX(), at.getBlockY(), at.getBlockZ());
+            SchemFlowPlugin plugin = SchemFlowPlugin.getInstance();
+            MapEntities.Paste riders = copyEntities && MapEntities.restorePassengers(plugin.getConfig())
+                    ? MapEntities.plan(clipboard, to) : null;
             try (EditSession editSession = WorldEdit.getInstance().newEditSession(weWorld)) {
                 editSession.setReorderMode(com.sk89q.worldedit.EditSession.ReorderMode.MULTI_STAGE);
                 var op = new com.sk89q.worldedit.session.ClipboardHolder(clipboard)
-                        .createPaste(editSession)
+                        .createPaste(riders != null ? riders.wrap(editSession) : editSession)
                         .to(to)
                         .ignoreAirBlocks(ignoreAir)
                         .copyEntities(copyEntities)
-                        .copyBiomes(copyBiomes)
+                        .copyBiomes(copyBiomes && clipboard.hasBiomes()) // no stored biomes: keep the world's own
                         .build();
                 Operations.complete(op);
             }
             // after close(): FAWE only writes the blocks when the session is flushed
-            PasteLighting.afterPaste(SchemFlowPlugin.getInstance(), at.getWorld(), PasteLighting.pastedRegion(weWorld, clipboard, to));
+            if (riders != null) riders.spawn(plugin, at.getWorld());
+            PasteLighting.afterPaste(plugin, at.getWorld(), PasteLighting.pastedRegion(weWorld, clipboard, to));
             return true;
         }
     }
@@ -98,8 +104,11 @@ public class WorldEditUtils {
      * Paste a preloaded clipboard into a world. With FastAsyncWorldEdit this is safe (and strongly
      * preferred) to call OFF the main thread; with plain WorldEdit it must run on the main thread.
      *
-     * <p>The pasted chunks are then relit per the {@code lighting.*} config (see {@link PasteLighting});
-     * called off the main thread, this only returns once that relight is done.
+     * <p>Biomes are written only when the clipboard has them, so an older schematic without biomes leaves
+     * the target world's biomes as they are. Entities riding other entities (display-entity models) are
+     * spawned with their passengers once the blocks are in (see {@link MapEntities}). The pasted chunks are
+     * then relit per the {@code lighting.*} config (see {@link PasteLighting}). Called off the main thread,
+     * this only returns once the riders are spawned and the relight is done.
      *
      * @param atOrigin true  &rarr; paste at the clipboard's stored origin (WorldEdit {@code //paste -o}),
      *                          so every block lands at its authored ABSOLUTE coordinate; use this for
@@ -113,27 +122,33 @@ public class WorldEditUtils {
         BlockVector3 to = atOrigin
                 ? clipboard.getOrigin()
                 : clipboard.getOrigin().subtract(clipboard.getRegion().getMinimumPoint());
+        SchemFlowPlugin plugin = SchemFlowPlugin.getInstance();
+        MapEntities.Paste riders = copyEntities && MapEntities.restorePassengers(plugin.getConfig())
+                ? MapEntities.plan(clipboard, to) : null;
         try (EditSession editSession = WorldEdit.getInstance().newEditSession(weWorld)) {
             editSession.setReorderMode(EditSession.ReorderMode.MULTI_STAGE);
             Operation op = new ClipboardHolder(clipboard)
-                    .createPaste(editSession)
+                    .createPaste(riders != null ? riders.wrap(editSession) : editSession)
                     .to(to)
                     .ignoreAirBlocks(ignoreAir)
                     .copyEntities(copyEntities)
-                    .copyBiomes(copyBiomes)
+                    .copyBiomes(copyBiomes && clipboard.hasBiomes()) // no stored biomes: keep the world's own
                     .build();
             Operations.complete(op);
         }
-        // after close(): FAWE only writes the blocks when the session is flushed. Off the main thread this
-        // waits for the relight, so the paste returns with the map already lit.
-        PasteLighting.afterPaste(SchemFlowPlugin.getInstance(), bukkitWorld, PasteLighting.pastedRegion(weWorld, clipboard, to));
+        // after close(): FAWE only writes the blocks when the session is flushed. Off the main thread both
+        // steps wait, so the paste returns with the models standing and the map already lit.
+        if (riders != null) riders.spawn(plugin, bukkitWorld);
+        PasteLighting.afterPaste(plugin, bukkitWorld, PasteLighting.pastedRegion(weWorld, clipboard, to));
     }
 
     /**
      * Export a cuboid to a {@code .schem} PRESERVING the absolute world origin: the clipboard origin
      * is forced to (0,0,0), so the selection's absolute minimum corner is baked into the schematic
      * offset. A later {@link #pasteClipboard}{@code (..., atOrigin=true)} then lands every block at
-     * its original absolute coordinate. Use this for map authoring (ADD #3). Runs on the main thread.
+     * its original absolute coordinate. Use this for map authoring (ADD #3). Stores biomes (unless
+     * {@code maps.copyBiomes} is off) and keeps riding entities inside their vehicle only (see
+     * {@link MapEntities}). Runs on the main thread.
      */
     public static Path exportCuboidPreserveOrigin(Location a, Location b, Path outSchemFile) throws Exception {
         World weWorld = BukkitAdapter.adapt(a.getWorld());
@@ -143,9 +158,11 @@ public class WorldEditUtils {
         BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
         clipboard.setOrigin(BlockVector3.ZERO);
         try (EditSession editSession = WorldEdit.getInstance().newEditSession(weWorld)) {
-            ForwardExtentCopy copy = new ForwardExtentCopy(editSession, region, clipboard, region.getMinimumPoint());
+            ForwardExtentCopy copy = new ForwardExtentCopy(editSession, region, MapEntities.exportTarget(clipboard), region.getMinimumPoint());
             copy.setCopyingEntities(true);
             copy.setRemovingEntities(false);
+            // ForwardExtentCopy leaves biomes out unless asked: maps came back with the void world's biomes
+            copy.setCopyingBiomes(MapEntities.copyBiomes(SchemFlowPlugin.getInstance().getConfig()));
             Operations.complete(copy);
         }
         ClipboardFormat format = ClipboardFormats.findByFile(outSchemFile.toFile());

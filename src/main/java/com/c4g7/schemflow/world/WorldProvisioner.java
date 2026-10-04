@@ -386,16 +386,20 @@ public class WorldProvisioner {
 
     /**
      * Paste a round map. {@code ignoreAir = true}: a freshly provisioned world is all-void, so air blocks
-     * are redundant; skipping them makes a typical (mostly hollow) map paste far cheaper. Off the main
-     * thread the paste also waits for the map to be relit (see {@link com.c4g7.schemflow.we.PasteLighting}),
-     * so callers that unload or copy the world as soon as the future completes get a lit map.
+     * are redundant; skipping them makes a typical (mostly hollow) map paste far cheaper. Biomes stored in
+     * the schematic are pasted too (an older one without biomes keeps the world's own). Off the main thread
+     * the paste also waits for the display-entity models to be spawned and the map to be relit (see
+     * {@link com.c4g7.schemflow.we.MapEntities} and {@link com.c4g7.schemflow.we.PasteLighting}), so callers
+     * that unload or copy the world as soon as the future completes get the whole map.
      */
     private void pasteRoundMap(World world, com.sk89q.worldedit.extent.clipboard.Clipboard clipboard,
                                boolean pasteAtOrigin, String worldName, String group, String schematicName) throws Exception {
-        WorldEditUtils.pasteClipboard(world, clipboard, pasteAtOrigin, true, true, true);
+        boolean biomes = com.c4g7.schemflow.we.MapEntities.copyBiomes(plugin.getConfig());
+        WorldEditUtils.pasteClipboard(world, clipboard, pasteAtOrigin, true, true, biomes);
         plugin.getLogger().info("Provisioned round world '" + worldName + "' from "
                 + (group == null || group.isBlank() ? "" : group + "/") + schematicName
-                + (pasteAtOrigin ? " (paste-at-origin)" : " (min at 0,0,0)"));
+                + (pasteAtOrigin ? " (paste-at-origin)" : " (min at 0,0,0)")
+                + (biomes && !clipboard.hasBiomes() ? "; the schematic stores no biomes (re-export the map to keep them)" : ""));
     }
 
     /** True when FastAsyncWorldEdit is present, i.e. pastes can run safely off the main thread. */

@@ -37,6 +37,21 @@ lighting:
   # (the light math itself runs off the main thread); lower it on a busy server, raise it to relight faster.
   chunksPerTick: 32
 
+# Map exports and round pastes.
+maps:
+  # Store every block's biome in map exports and paste it back. Without it a provisioned map takes the
+  # biomes of the empty world it is pasted into (wrong grass/water/sky colours, rain instead of snow).
+  # Only maps exported with this on carry biomes; pasting an older map leaves the world's biomes alone.
+  copyBiomes: true
+  # Rebuild entities that ride other entities, e.g. models made of block/item/text displays stacked on one
+  # root entity. FastAsyncWorldEdit saves each rider twice (nested in its vehicle, and as an empty copy of
+  # its own) and pastes only the empty copies, so such models vanish from the map. SchemFlow spawns each
+  # vehicle with its riders mounted and skips the empty copies; old schematics are restored as they are.
+  restorePassengers: true
+  # Entities spawned per server tick while restoring them. Each costs up to about a tenth of a millisecond of
+  # main-thread time (the NBT is parsed off it); lower it on a busy server, raise it to restore models faster.
+  entitiesPerTick: 128
+
 # Provisioning (WDB replacement)
 provisionOnStartup: false
 worlds:
