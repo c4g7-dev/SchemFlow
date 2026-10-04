@@ -128,6 +128,9 @@ public class SchemFlowPlugin extends JavaPlugin {
             if (!c.contains("lighting.relightAfterPaste", true)) { c.set("lighting.relightAfterPaste", true); updated = true; }
             if (!c.contains("lighting.maxWaitSeconds", true)) { c.set("lighting.maxWaitSeconds", 60); updated = true; }
             if (!c.contains("lighting.chunksPerTick", true)) { c.set("lighting.chunksPerTick", 32); updated = true; }
+            if (!c.contains("maps.copyBiomes", true)) { c.set("maps.copyBiomes", true); updated = true; }
+            if (!c.contains("maps.restorePassengers", true)) { c.set("maps.restorePassengers", true); updated = true; }
+            if (!c.contains("maps.entitiesPerTick", true)) { c.set("maps.entitiesPerTick", 128); updated = true; }
             if (updated) saveConfig();
         } catch (Throwable ignored) {}
         this.audiences = net.kyori.adventure.platform.bukkit.BukkitAudiences.create(this);
