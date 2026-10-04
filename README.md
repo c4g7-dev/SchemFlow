@@ -7,8 +7,8 @@
 [![License](https://img.shields.io/github/license/c4g7-dev/SchemFlow?style=for-the-badge)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/c4g7-dev/SchemFlow?style=for-the-badge&color=brightgreen)](https://github.com/c4g7-dev/SchemFlow/releases)
 [![GitHub Downloads](https://img.shields.io/github/downloads/c4g7-dev/SchemFlow/total?style=for-the-badge&color=blue&label=GitHub%20Downloads)](https://github.com/c4g7-dev/SchemFlow/releases)
-[![Java](https://img.shields.io/badge/Java-21-orange?style=for-the-badge&logo=openjdk)](https://openjdk.org/)
-[![Paper](https://img.shields.io/badge/Paper-1.21--1.21.11-00ADD8?style=for-the-badge&logo=minecraft)](https://papermc.io/)
+[![Java](https://img.shields.io/badge/Java-21+-orange?style=for-the-badge&logo=openjdk)](https://openjdk.org/)
+[![Paper](https://img.shields.io/badge/Paper-1.21--26.2-00ADD8?style=for-the-badge&logo=minecraft)](https://papermc.io/)
 
 **⚡ Cloud-native schematic manager with local support and lightning-fast tab completion**
 
@@ -79,9 +79,10 @@
 
 ### 🔧 **Advanced WorldEdit Support**
 - **FastAsyncWorldEdit** fully compatible
-- **Entity handling** with `-e` flag
+- **Entity handling** with `-e` flag, including display-entity models
 - **Air block control** with `-a` flag  
 - **Biome preservation** with `-b` flag (default enabled)
+- **Lit pastes** through the server's light engine
 - **Large schematic optimization** for massive builds
 
 </td>
@@ -125,9 +126,9 @@
 ## 🚀 Quick Start
 
 ### 📋 **Requirements**
-- **Minecraft**: 1.21 – 1.21.11 (Paper/Purpur recommended)
+- **Minecraft**: 1.21 – 1.21.11 and 26.1 – 26.2 (Paper/Purpur)
 - **Java**: 21+
-- **WorldEdit**: 7.2.18+ (or FastAsyncWorldEdit)
+- **WorldEdit**: 7.2.18+ (or FastAsyncWorldEdit, recommended: provisioning pastes run off the main thread)
 
 ### ⚙️ Quick Configuration
 
@@ -220,6 +221,7 @@ maps:
 | `/SchemFlow pos1` | Set first selection corner | `/SchemFlow pos1` |
 | `/SchemFlow pos2` | Set second selection corner | `/SchemFlow pos2` |
 | `/SchemFlow provision <world>` | Create/provision world from config | `/SchemFlow provision lobby` |
+| `/SchemFlow savemap <world> <x1 y1 z1> <x2 y2 z2> <group> <name>` | Save a region of any world as a map, absolute origin preserved (no selection needed) | `/SchemFlow savemap arena_src 0 60 0 120 110 90 arenas arena1` |
 
 ### Flags & Options
 - `-e`: Include/paste entities
@@ -366,12 +368,13 @@ Other plugins can drive SchemFlow **on demand** — provision a fresh world, pas
 
 | Method | Returns | Purpose |
 |--------|---------|---------|
-| `provisionRoundWorld(world, group, schematic, pasteAtOrigin, gamerules)` | `CompletableFuture<World>` | Create a void world, async-fetch the schematic from S3, paste it, apply gamerules. Completes **only once the map is fully pasted**. Idempotent per world name. |
+| `provisionRoundWorld(world, group, schematic, pasteAtOrigin, gamerules)` | `CompletableFuture<World>` | Create a void world, async-fetch the schematic from S3, paste it off the main thread (FAWE), apply gamerules. Completes **only once the map is pasted, its display-entity models are spawned and it is lit**, so the world can be copied or unloaded right away. Idempotent per world name. |
 | `disposeWorld(world)` | `CompletableFuture<Void>` | Unload (no save) and delete the world folder. |
 | `inspect(group, schematic)` | `SchematicInfo` | Dimensions + authored min corner, for callers that paste at a fixed point. Call off the main thread. |
 | `saveSelectionAsMap(player, group, name)` | `CompletableFuture<Void>` | Save a `pos1`/`pos2` selection to S3 **preserving the absolute origin** (map builder). |
+| `saveRegionAsMap(pos1, pos2, group, name)` | `CompletableFuture<Void>` | Same, headless: two corners in any loaded world, no player needed (batch map conversion). |
 
-> **Paste-at-origin** (`pasteAtOrigin = true`) restores every block at the coordinate it was authored at, so absolute named locations stay valid in the new world. This requires maps saved via `saveSelectionAsMap` (which preserves the absolute origin); schematics created with `/SchemFlow upload` paste relatively and should be re-exported if you need absolute placement.
+> **Paste-at-origin** (`pasteAtOrigin = true`) restores every block at the coordinate it was authored at, so absolute named locations stay valid in the new world. This requires maps saved via `saveSelectionAsMap` or `saveRegionAsMap` (which preserve the absolute origin); schematics created with `/SchemFlow upload` paste relatively and should be re-exported if you need absolute placement.
 
 ### Reflection example (zero compile-time dependency)
 
@@ -386,7 +389,7 @@ CompletableFuture<?> future = (CompletableFuture<?>) prov.getClass()
 
 future.whenComplete((world, error) -> {
     if (error != null) { /* handle failure */ return; }
-    // (org.bukkit.World) world is fully pasted — safe to teleport players in
+    // (org.bukkit.World) world is pasted, lit and populated — safe to teleport players in
 });
 ```
 
@@ -467,11 +470,11 @@ cd SchemFlow
 mvn clean package
 ```
 
-**Output**: `target/SchemFlow-0.5.14-all.jar`
+**Output**: `target/SchemFlow-0.5.16-all.jar`
 
 ### **Development Setup**
 - **IDE**: IntelliJ IDEA or Visual Studio Code with Java extensions
-- **Java**: OpenJDK 21+ (tested with 21, 17 compatible)
+- **Java**: OpenJDK 21+ (the build targets Java 21)
 - **Dependencies**: Automatically resolved via Maven
 - **Testing**: Paper/Purpur test server with WorldEdit or FAWE
 
@@ -575,10 +578,10 @@ SchemFlow is released under the **Apache-2.0 License** — see [LICENSE](LICENSE
 
 <div align="center">
 
-**🌊 SchemFlow v0.5.14 — On-demand world provisioning API for build & game networks**
+**🌊 SchemFlow v0.5.16 — On-demand world provisioning API for build & game networks**
 
 Made with ❤️ by c4g7-dev and the Minecraft community
 
-[⭐ Star us on GitHub](https://github.com/c4g7-dev/SchemFlow) • [🚀 Download v0.5.14](https://github.com/c4g7-dev/SchemFlow/releases/latest) • [💬 Join Discord](https://discord.gg/eNNbqS4N2H)
+[⭐ Star us on GitHub](https://github.com/c4g7-dev/SchemFlow) • [🚀 Download v0.5.16](https://github.com/c4g7-dev/SchemFlow/releases/latest) • [💬 Join Discord](https://discord.gg/eNNbqS4N2H)
 
 </div>
