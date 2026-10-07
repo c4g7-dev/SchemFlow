@@ -13,7 +13,6 @@ public class SchemFlowPlugin extends JavaPlugin {
     private S3Service s3Service;
     private SelectionManager selection;
     private WorldProvisioner provisioner;
-    private net.kyori.adventure.platform.bukkit.BukkitAudiences audiences;
     private net.kyori.adventure.text.minimessage.MiniMessage miniMessage;
     private java.util.concurrent.CopyOnWriteArrayList<String> schemCache = new java.util.concurrent.CopyOnWriteArrayList<>();
     private int cacheTaskId = -1;
@@ -24,7 +23,6 @@ public class SchemFlowPlugin extends JavaPlugin {
     public S3Service getS3Service() { return s3Service; }
     public SelectionManager getSelection() { return selection; }
     public WorldProvisioner getProvisioner() { return provisioner; }
-    public net.kyori.adventure.platform.bukkit.BukkitAudiences getAudiences() { return audiences; }
     public net.kyori.adventure.text.minimessage.MiniMessage getMiniMessage() { return miniMessage; }
     public java.util.List<String> getSchematicCache() { return schemCache; }
     public com.c4g7.schemflow.util.UndoManager getUndoManager() { return undoManager; }
@@ -133,7 +131,6 @@ public class SchemFlowPlugin extends JavaPlugin {
             if (!c.contains("maps.entitiesPerTick", true)) { c.set("maps.entitiesPerTick", 128); updated = true; }
             if (updated) saveConfig();
         } catch (Throwable ignored) {}
-        this.audiences = net.kyori.adventure.platform.bukkit.BukkitAudiences.create(this);
         this.miniMessage = net.kyori.adventure.text.minimessage.MiniMessage.miniMessage();
         try {
             // Initialize bStats metrics (plugin id 27301)
@@ -237,7 +234,6 @@ public class SchemFlowPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         if (s3Service != null) s3Service.close();
-        if (audiences != null) audiences.close();
         if (cacheTaskId != -1) getServer().getScheduler().cancelTask(cacheTaskId);
         purgeEphemeralCache();
     }

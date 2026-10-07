@@ -639,11 +639,8 @@ public class SchemFlowCommand implements CommandExecutor {
                 "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " trash clear</gradient> <grey>--confirm</grey> <dark_grey>-</dark_grey> Permanently clear trash (shows count)</grey>\n" +
                 "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " undo</gradient> <dark_grey>-</dark_grey> Undo last paste/delete</grey>\n" +
                 "<grey><gradient:#ff77e9:#ff4fd8:#ff77e9>" + cmd + " redo</gradient> <dark_grey>-</dark_grey> Redo last undo</grey>";
-        var adv = com.c4g7.schemflow.SchemFlowPlugin.getInstance().getAudiences();
-        if (adv != null) adv.sender(sender).sendMessage(mm.deserialize(msg));
-        else sender.sendMessage(mm.deserialize(msg));
-        if (adv != null) adv.sender(sender).sendMessage(mm.deserialize("<dark_grey>------------------------------</dark_grey>"));
-        else sender.sendMessage(mm.deserialize("<dark_grey>------------------------------</dark_grey>"));
+        sender.sendMessage(mm.deserialize(msg));
+        sender.sendMessage(mm.deserialize("<dark_grey>------------------------------</dark_grey>"));
     }
 
     private java.nio.file.Path getPluginWorkDir() throws java.io.IOException {
@@ -658,11 +655,9 @@ public class SchemFlowCommand implements CommandExecutor {
         return "<dark_grey>[<gradient:#ff77e9:#ff4fd8:#ff77e9>SchemFlow</gradient>]</dark_grey>";
     }
 
+    // Paper's native Adventure: adventure-platform-bukkit silently dropped every message on 26.x
     private void sendMM(CommandSender sender, String mini) {
-        var mm = plugin.getMiniMessage();
-        var adv = plugin.getAudiences();
-        if (adv != null) adv.sender(sender).sendMessage(mm.deserialize(mini));
-        else sender.sendMessage(mm.deserialize(mini));
+        sender.sendMessage(plugin.getMiniMessage().deserialize(mini));
     }
 
     private boolean check(CommandSender sender, String node) {

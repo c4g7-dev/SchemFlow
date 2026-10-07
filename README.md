@@ -24,6 +24,9 @@
 
 **SchemFlow** revolutionizes schematic management for Minecraft servers by combining cloud-native S3/MinIO storage with local schematic support, delivering unmatched performance and reliability. This open-source plugin eliminates the bottlenecks of traditional workflows while maintaining full compatibility with native WorldEdit formats.
 
+### ⚡ **What's New in v0.5.17**
+- **💬 Commands Reply Again On 26.x**: `/SchemFlow` replies (help, lists, errors, confirmations) were silently dropped on Minecraft 26.x by an outdated chat library. They now go through Paper's built-in messaging.
+
 ### ⚡ **What's New in v0.5.16**
 - **🌸 Biomes Travel With The Map**: map exports now store biomes and provisioned rounds paste them back, so grass, water and sky colours and snow match the original. Re-export maps made before 0.5.16 to get their biomes; a map without biomes leaves the world's own untouched.
 - **🪔 Display-Entity Models Survive**: models built from block/item/text displays riding a root entity no longer vanish. FastAsyncWorldEdit pasted only empty copies of the riders; SchemFlow now spawns every vehicle with its passengers mounted, and restores existing schematics as they are. Configurable under `maps:` in `config.yml`.
@@ -470,7 +473,7 @@ cd SchemFlow
 mvn clean package
 ```
 
-**Output**: `target/SchemFlow-0.5.16-all.jar`
+**Output**: `target/SchemFlow-0.5.17-all.jar`
 
 ### **Development Setup**
 - **IDE**: IntelliJ IDEA or Visual Studio Code with Java extensions
@@ -578,10 +581,10 @@ SchemFlow is released under the **Apache-2.0 License** — see [LICENSE](LICENSE
 
 <div align="center">
 
-**🌊 SchemFlow v0.5.16 — On-demand world provisioning API for build & game networks**
+**🌊 SchemFlow v0.5.17 — On-demand world provisioning API for build & game networks**
 
 Made with ❤️ by c4g7-dev and the Minecraft community
 
-[⭐ Star us on GitHub](https://github.com/c4g7-dev/SchemFlow) • [🚀 Download v0.5.16](https://github.com/c4g7-dev/SchemFlow/releases/latest) • [💬 Join Discord](https://discord.gg/eNNbqS4N2H)
+[⭐ Star us on GitHub](https://github.com/c4g7-dev/SchemFlow) • [🚀 Download v0.5.17](https://github.com/c4g7-dev/SchemFlow/releases/latest) • [💬 Join Discord](https://discord.gg/eNNbqS4N2H)
 
 </div>

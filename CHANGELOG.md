@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.17 - 2026-10-07
+### Fixed — `/SchemFlow` commands didn't reply on Minecraft 26.x
+- Every command reply (help, list, errors, confirmations, "No permission") went through the bundled
+  `adventure-platform-bukkit` 4.3.3, which predates 26.x. On 26.x it finds no working way to deliver a message and
+  drops it without an error, so the commands looked dead even though they ran. The API used by other plugins
+  (`provisionRoundWorld`, `saveRegionAsMap`, …) sends no messages and was not affected.
+- Replies now go through Paper's built-in Adventure (`CommandSender#sendMessage(Component)`) using the server's own
+  MiniMessage. The outdated `adventure-platform-bukkit` and the bundled MiniMessage are gone from the jar.
+- Verified on Purpur 26.2: `/SchemFlow help`, `list` and `pos1` from the console printed nothing on 0.5.16 and reply
+  normally on 0.5.17.
+
 ## 0.5.16 - 2026-10-04
 ### Fixed — Provisioned maps lost their biomes
 - Map exports (`saveRegionAsMap`, `saveSelectionAsMap`, `/SchemFlow savemap`, `/SchemFlow upload`) never asked
