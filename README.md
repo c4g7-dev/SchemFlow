@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/c4g7-dev/SchemFlow?style=for-the-badge&color=brightgreen)](https://github.com/c4g7-dev/SchemFlow/releases)
 [![GitHub Downloads](https://img.shields.io/github/downloads/c4g7-dev/SchemFlow/total?style=for-the-badge&color=blue&label=GitHub%20Downloads)](https://github.com/c4g7-dev/SchemFlow/releases)
 [![Java](https://img.shields.io/badge/Java-21+-orange?style=for-the-badge&logo=openjdk)](https://openjdk.org/)
-[![Paper](https://img.shields.io/badge/Paper-1.21--26.2-00ADD8?style=for-the-badge&logo=minecraft)](https://papermc.io/)
+[![Paper](https://img.shields.io/badge/Paper-1.21--26.3-00ADD8?style=for-the-badge&logo=minecraft)](https://papermc.io/)
 
 **⚡ Cloud-native schematic manager with local support and lightning-fast tab completion**
 
@@ -129,9 +129,9 @@
 ## 🚀 Quick Start
 
 ### 📋 **Requirements**
-- **Minecraft**: 1.21 – 1.21.11 and 26.1 – 26.2 (Paper/Purpur)
+- **Minecraft**: 1.21 – 1.21.11 and 26.1 – 26.3 (Paper/Purpur)
 - **Java**: 21+
-- **WorldEdit**: 7.2.18+ (or FastAsyncWorldEdit, recommended: provisioning pastes run off the main thread)
+- **WorldEdit**: 7.2.18+ (or FastAsyncWorldEdit, recommended: provisioning pastes run off the main thread; 26.3 needs FAWE 2.16.0+)
 
 ### ⚙️ Quick Configuration
 
